@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>CarJumper ð</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  overflow: hidden;
+  touch-action: none;
+}
+
+#gameWrapper {
+  position: relative;
+  user-select: none;
+}
+
+canvas {
+  display: block;
+  border-radius: 14px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+}
+
+/* Buttons */
+#buttons {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  gap: 12px;
+}
+
+.btn {
+  padding: 11px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: transform 0.1s, filter 0.1s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active:not(:disabled) { transform: scale(0.93); }
+.btn:disabled { opacity: 0.35; cursor: default; filter: grayscale(0.5); }
+#boostBtn { background: linear-gradient(135deg,#ff6b35,#e63946); color: #fff; }
+#flipBtn  { background: linear-gradient(135deg,#a855f7,#7c3aed); color: #fff; }
+
+/* Shop overlay */
+#shopOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  padding: 20px;
+}
+
+#shopOverlay h2 {
+  color: #ffd700;
+  font-size: 26px;
+  margin-bottom: 4px;
+}
+
+#shopMeta {
+  color: #94a3b8;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+#shopCoins {
+  color: #ffd700;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+#shopGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 540px;
+}
+
+.shopItem {
+  background: #1e293b;
+  border: 2px solid #334155;
+  border-radius: 10px;
+  padding: 12px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+.shopItem:hover:not(.maxed):not(.cantAfford) {
+  border-color: #60a5fa;
+  transform: translateY(-2px);
+}
+.shopItem.maxed    { border-color: #ffd700; cursor: default; }
+.shopItem.cantAfford { opacity: 0.45; cursor: default; }
+
+.shopItem .sEmoji { font-size: 26px; }
+.shopItem .sName  { color: #fff; font-weight: 700; font-size: 13px; margin: 4px 0 2px; }
+.shopItem .sDesc  { color: #64748b; font-size: 11px; }
+.shopItem .sCost  { color: #ffd700; font-size: 12px; margin-top: 6px; font-weight: 600; }
+.shopItem .sBar   { display: flex; gap: 3px; justify-content: center; margin-top: 6px; }
+.shopItem .sDot   { width: 8px; height: 8px; border-radius: 50%; background: #334155; }
+.shopItem .sDot.on { background: #60a5fa; }
+
+#continueBtn {
+  padding: 13px 48px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(34,197,94,0.4);
+  transition: transform 0.1s, filter 0.1s;
+  letter-spacing: 0.5px;
+}
+#continueBtn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+#continueBtn:active { transform: scale(0.96); }
+</style>
+</head>
+<body>
+
+<div id="gameWrapper">
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="buttons">
+    <button class="btn" id="boostBtn">ð Boost  (B)</button>
+    <button class="btn" id="flipBtn">ð Flip  (F)</button>
+  </div>
+
+  <div id="shopOverlay">
+    <h2>ðª Upgrade Shop</h2>
+    <div id="shopMeta"></div>
+    <div id="shopCoins"></div>
+    <div id="shopGrid"></div>
+    <button id="continueBtn">Next Level â</button>
+  </div>
+</div>
+
+<script>
+// âââââââââââââââââââââââââââââââââââââââââââââ
+//  CANVAS SETUP
+// âââââââââââââââââââââââââââââââââââââââââââââ
+const canvas  = document.getElementById('gameCanvas');
+const ctx     = canvas.getContext('2d');
+const wrapper = document.getElementById('gameWrapper');
+const W = 860, H = 490;
+
+function resize() {
+  const mw = window.innerWidth  - 16;
+  const mh = window.innerHeight - 16;
+  let w = mw, h = w * H / W;
+  if (h > mh) { h = mh; w = h * W / H; }
+  canvas.style.width  = w + 'px';
+  canvas.style.height = h + 'px';
+  wrapper.style.width  = w + 'px';
+  wrapper.style.height = h + 'px';
+}
+canvas.width  = W;
+canvas.height = H;
+resize();
+window.addEventListener('resize', resize);
+
+// roundRect polyfill for older browsers
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    r = Math.min(r, w/2, h/2);
+    this.beginPath();
+    this.moveTo(x + r, y);
+    this.lineTo(x + w - r, y);
+    this.quadraticCurveTo(x + w, y, x + w, y + r);
+    this.lineTo(x + w, y + h - r);
+    this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    this.lineTo(x + r, y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - r);
+    this.lineTo(x, y + r);
+    this.quadraticCurveTo(x, y, x + r, y);
+    this.closePath();
+    return this;
+  };
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+//  CONSTANTS
+// âââââââââââââââââââââââââââââââââââââââââââââ
+const GROUND_Y    = 370;
+const GRAVITY     = 0.46;
+const RAMP_X      = 265;   // edge of ramp where car launches from
+const RAMP_H      = 38;
+const RIVER_START = 310;   // left bank x
+const RIVER_BASE  = 140;   // starting width
+const RIVER_GROW  = 24;    // pixels wider per level
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+//  UPGRADES
+// âââââââââââââââââââââââââââââââââââââââââââââ
+const UPG = {
+  engine:     { lv:0, max:3, costs:[10,28,55], name:'Engine',      emoji:'ð§', desc:'More launch speed' },
+  springs:    { lv:0, max:3, costs:[10,28,55], name:'Springs',     emoji:'ð', desc:'Jump higher'       },
+  flipCharge: { lv:0, max:3, costs:[15,35,70], name:'Flip Charge', emoji:'â¡', desc:'Faster flip cool'  },
+  turbo:      { lv:0, max:3, costs:[15,35,70], name:'Turbo',       emoji:'ð', desc:'Boost gives more'  },
+  grip:       { lv:0, max:3, costs:[20,45,85], name:'Grip',        emoji:'ðï¸', desc:'Cleaner landings'  },
+  magnet:     { lv:0, max:3, costs:[20,45,85], name:'Coin Magnet', emoji:'ð°', desc:'Bigger coin range' }
+};
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+//  GAME STATE
+// âââââââââââââââââââââââââââââââââââââââââââââ
+let state = 'menu';   // menu | driving | airborne | landed | shop | gameover
+let level = 1;
+let totalCoins   = 0;
+let sessionCoins = 0;
+let riverWidth   = RIVER_BASE;
+
+let frame = 0;
+let waveOff = 0;
+let particles = [];
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+//  CAR
+// âââââââââââââââââââââââââââââââââââââââââââââ
+let car = {};
+let boosted  = false;
+let flipUsed = false;
+let flipCooldown = 0;
+
+function resetCar() {
+  car = {
+    x: 55, y: GROUND_Y - 30,
+    vx: 0, vy: 0,
+    angle: 0,
+    w: 58, h: 28,
+    spinning: false, spinVel: 0
+  };
+  boosted      = false;
+  flipUsed     = false;
+  flipCooldown = 0;
+  sessionCoins = 0;
+  airCoins     = spawnCoins();
+  particles    = [];
+}
+resetCar();
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+//  COINS
+// âââââââââââââââââââââââââââââââââââââââââââââ
+let airCoins = [];
+function spawnCoins() {
+  const out = [];
+  const count = 3 + UPG.magnet.lv * 2 + Math.floor(Math.random() * 2);
+  const rl = RIVER_START, rr = RIVER_START + riverWidth;
+  for (let i = 0; i < count; i++) {
+    out.push({
+      x: rl + 18 + Math.random() * (riverWidth - 36),
+      y: GROUND_Y - 65 - Math.random() * 90,
+      r: 11,
+      anim: Math.random() * Math.PI * 2,
+      collected: false
+    });
+  }
+  return out;
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+//  INPUT  (the bug fix: listeners are on window + canvas, not just canvas)
+// âââââââââââââââââââââââââââââââââââââââââââââ
+const keys = {};
+
+window.addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (keys[k]) return;
+  keys[k] = true;
+  if (k === ' ' || k === 'enter') { e.preventDefault(); onJump(); }
+  if (k === 'f')                  { onFlip();  }
+  if (k === 'b')                  { onBoost(); }
+});
+window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+// Canvas click/touch â jump
+canvas.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  if (state === 'airborne') { onFlip(); }
+  else                      { onJump(); }
+}, { passive: false });
+
+document.getElementById('boostBtn').addEventListener('pointerdown', e => {
+  e.stopPropagation(); e.preventDefault(); onBoost();
+}, { passive: false });
+document.getElementById('flipBtn').addEventListener('pointerdown', e => {
+  e.stopPropagation(); e.preventDefault(); onFlip();
+}, { passive: false });
+
+function onJump() {
+  if (state === 'menu')    { startGame(); return; }
+  if (state === 'driving') { launch(); }
+}
+
+function onBoost() {
+  if (state !== 'driving' || boosted) return;
+  boosted = true;
+  car.vx += 2.2 + UPG.turbo.lv * 0.9;
+  document.getElementById('boostBtn').disabled = true;
+  spawnParticles(car.x, car.y + car.h/2, '#ff6b35', 8);
+}
+
+function onFlip() {
+  if (state !== 'airborne' || flipUsed) return;
+  flipUsed     = true;
+  car.spinning = true;
+  car.spinVel  = 0.38;
+  document.getElementById('flipBtn').disabled = true;
+  spawnParticles(car.x + car.w/2, car.y + car.h/2, '#a855f7', 10);
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+//  GAME FLOW
+// âââââââââââââââââââââââââââââââââââââââââââââ
+function startGame() {
+  level      = 1;
+  totalCoins = 0;
+  riverWidth = RIVER_BASE;
+  Object.values(UPG).forEach(u => u.lv = 0);
+  resetCar();
+  goState('driving');
+}
+
+function launch() {
+  if (state !== 'driving') return;
+  const speedMult  = 1 + UPG.engine.lv  * 0.22;
+  const springMult = 1 + UPG.springs.lv * 0.28;
+  const boostBonus = boosted ? (1.6 + UPG.turbo.lv * 0.5) : 0;
+
+  const spd = Math.max(car.vx, 2.5 * speedMult);
+  car.vx = spd * 1.15;
+  car.vy = -(6.5 * springMult + boostBonus);
+  car.angle = -0.22;
+  goState('airborne');
+  document.getElementById('flipBtn').disabled = false;
+  document.getElementById('boostBtn').disabled = true;
+}
+
+function goState(s) {
+  state = s;
+  const btns = document.getElementById('buttons');
+  btns.style.display = (s === 'driving' || s === 'airborne') ? 'flex' : 'none';
+  if (s === 'driving') {
+    document.getElementById('boostBtn').disabled = false;
+    document.getElementById('flipBtn').disabled  = true;
+  }
+}
+
+function onLand(inRiver) {
+  if (inRiver) {
+    goState('gameover');
+    spawnParticles(car.x + car.w/2, GROUND_Y, '#1e90ff', 20);
+    setTimeout(() => goState('menu'), 3200);
+  } else {
+    // Success
+    if (flipUsed) sessionCoins += 3;
+    car.vx  *= (0.28 - UPG.grip.lv * 0.04);
+    car.vy   = 0;
+    car.spinning = false;
+    car.angle = 0;
+    totalCoins += sessionCoins;
+    level++;
+    riverWidth = RIVER_BASE + (level - 1) * RIVER_GROW;
+    spawnParticles(car.x + car.w/2, car.y, '#4ade80', 14);
+    goState('landed');
+    setTimeout(() => openShop(), 900);
+  }
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+//  SHOP
+// âââââââââââââââââââââââââââââââââââââââââââââ
+function openShop() {
+  goState('shop');
+  renderShop();
+  document.getElementById('shopOverlay').style.display = 'flex';
+}
+
+function renderShop() {
+  document.getElementById('shopMeta').textContent  = `Level ${level - 1} complete â Level ${level} next`;
+  document.getElementById('shopCoins').textContent = `ð° ${totalCoins} coins  (+${sessionCoins} this run)`;
+  const grid = document.getElementById('shopGrid');
+  grid.innerHTML = '';
+
+  Object.entries(UPG).forEach(([key, u]) => {
+    const maxed      = u.lv >= u.max;
+    const cost       = maxed ? null : u.costs[u.lv];
+    const canAfford  = !maxed && totalCoins >= cost;
+
+    const div = document.createElement('div');
+    div.className = 'shopItem' + (maxed ? ' maxed' : !canAfford ? ' cantAfford' : '');
+
+    const dots = Array.from({length: u.max}, (_, i) =>
+      `<div class="sDot ${i < u.lv ? 'on' : ''}"></div>`).join('');
+
+    div.innerHTML = `
+      <div class="sEmoji">${u.emoji}</div>
+      <div class="sName">${u.name}</div>
+      <div class="sDesc">${u.desc}</div>
+      <div class="sBar">${dots}</div>
+      <div class="sCost">${maxed ? 'â MAX' : canAfford ? `ð° ${cost}` : `ð ${cost}`}</div>`;
+
+    if (canAfford) {
+      div.addEventListener('click', () => {
+        totalCoins -= cost;
+        u.lv++;
+        renderShop();
+      });
+    }
+    grid.appendChild(div);
+  });
+}
+
+document.getElementById('continueBtn').addEventListener('click', () => {
+  document.getElementById('shopOverlay').style.display = 'none';
+  resetCar();
+  goState('driving');
+});
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+//  PARTICLES
+// âââââââââââââââââââââââââââââââââââââââââââââ
+function spawnParticles(x, y, color, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const s = 1.5 + Math.random() * 4;
+    particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s - 2,
+                     life: 1, decay: 0.03 + Math.random()*0.03, color, r: 3+Math.random()*3 });
+  }
+}
+
+function updateParticles() {
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.18;
+    p.life -= p.decay;
+  });
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+//  UPDATE
+// âââââââââââââââââââââââââââââââââââââââââââââ
+function update() {
+  frame++;
+  waveOff += 0.055;
+  updateParticles();
+
+  if (state === 'driving') {
+    const target = (2.8 + UPG.engine.lv * 0.45) * (boosted ? (1.35 + UPG.turbo.lv * 0.22) : 1);
+    car.vx += (target - car.vx) * 0.07;
+    car.x  += car.vx;
+    car.y   = GROUND_Y - car.h;
+
+    // Auto-launch if player drives past ramp without clicking
+    if (car.x + car.w / 2 > RAMP_X + 20 && state === 'driving') launch();
+  }
+
+  if (state === 'airborne') {
+    car.vy += GRAVITY;
+    car.x  += car.vx;
+    car.y  += car.vy;
+
+    if (car.spinning) {
+      car.angle  += car.spinVel;
+      car.spinVel = Math.max(0.05, car.spinVel * 0.985);
+    } else {
+      car.angle = Math.atan2(car.vy, car.vx) * 0.4;
+    }
+
+    // Coin magnet collection
+    const cr = 22 + UPG.magnet.lv * 12;
+    airCoins.forEach(c => {
+      if (c.collected) return;
+      const dx = (car.x + car.w/2) - c.x;
+      const dy = (car.y + car.h/2) - c.y;
+      if (Math.sqrt(dx*dx + dy*dy) < cr + c.r) {
+        c.collected = true;
+        sessionCoins++;
+        spawnParticles(c.x, c.y, '#ffd700', 5);
+      }
+    });
+
+    // Land detection
+    if (car.y + car.h >= GROUND_Y) {
+      car.y = GROUND_Y - car.h;
+      const cx  = car.x + car.w / 2;
+      const rl  = RIVER_START;
+      const rr  = RIVER_START + riverWidth;
+      const inRiver = cx > rl && cx < rr;
+      const landed  = car.x >= rr - 10;
+      onLand(inRiver || !landed);
+    }
+    if (car.y > H + 80) onLand(true);
+  }
+
+  if (state === 'landed') {
+    car.vx *= 0.88;
+    car.x  += car.vx;
+  }
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+//  DRAW
+// âââââââââââââââââââââââââââââââââââââââââââââ
+function drawBG() {
+  // Sky gradient
+  const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+  sky.addColorStop(0, '#1a3a5c');
+  sky.addColorStop(1, '#6eb5d8');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+
+  // Sun
+  ctx.fillStyle = '#ffe566';
+  ctx.beginPath(); ctx.arc(W - 90, 62, 38, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,229,102,0.18)';
+  ctx.beginPath(); ctx.arc(W - 90, 62, 60, 0, Math.PI*2); ctx.fill();
+
+  // Clouds
+  drawCloud(100, 55, 1.0);
+  drawCloud(360, 38, 1.3);
+  drawCloud(620, 70, 0.75);
+}
+
+function drawCloud(x, y, s) {
+  ctx.fillStyle = 'rgba(255,255,255,0.82)';
+  const r = s * 36;
+  ctx.beginPath();
+  ctx.arc(x,       y,       r * 0.62, 0, Math.PI*2);
+  ctx.arc(x + r*0.5, y - r*0.18, r * 0.5, 0, Math.PI*2);
+  ctx.arc(x + r,   y,       r * 0.55, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function drawGround() {
+  const rl = RIVER_START;
+  const rr = RIVER_START + riverWidth;
+
+  // Left grass
+  ctx.fillStyle = '#3d6b4f';
+  ctx.fillRect(0, GROUND_Y, rl, H - GROUND_Y);
+
+  // Road surface
+  ctx.fillStyle = '#4a4a4a';
+  ctx.fillRect(0, GROUND_Y, rl, 10);
+
+  // Road dashes
+  ctx.fillStyle = '#e2e8f0';
+  for (let rx = 20; rx < rl - 30; rx += 70) {
+    ctx.fillRect(rx, GROUND_Y + 3, 42, 4);
+  }
+
+  // Ramp
+  ctx.fillStyle = '#5a5a5a';
+  ctx.beginPath();
+  ctx.moveTo(RAMP_X - 50, GROUND_Y);
+  ctx.lineTo(RAMP_X,      GROUND_Y - RAMP_H);
+  ctx.lineTo(RAMP_X + 18, GROUND_Y - RAMP_H);
+  ctx.lineTo(RAMP_X + 18, GROUND_Y);
+  ctx.closePath();
+  ctx.fill();
+  // Ramp edge highlight
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(RAMP_X - 50, GROUND_Y);
+  ctx.lineTo(RAMP_X, GROUND_Y - RAMP_H);
+  ctx.stroke();
+
+  // River
+  ctx.fillStyle = '#1565c0';
+  ctx.fillRect(rl, GROUND_Y, riverWidth, H - GROUND_Y);
+
+  // Wave 1
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';
+  ctx.beginPath();
+  ctx.moveTo(rl, GROUND_Y + 12);
+  for (let wx = rl; wx <= rr; wx += 4) {
+    ctx.lineTo(wx, GROUND_Y + 12 + Math.sin((wx / 28) + waveOff) * 5);
+  }
+  ctx.lineTo(rr, GROUND_Y + 12);
+  ctx.lineTo(rl, GROUND_Y + 12);
+  ctx.fill();
+
+  // Wave 2
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.beginPath();
+  ctx.moveTo(rl, GROUND_Y + 28);
+  for (let wx = rl; wx <= rr; wx += 4) {
+    ctx.lineTo(wx, GROUND_Y + 28 + Math.sin((wx / 22) + waveOff * 1.4 + 1.2) * 4);
+  }
+  ctx.lineTo(rr, GROUND_Y + 28);
+  ctx.lineTo(rl, GROUND_Y + 28);
+  ctx.fill();
+
+  // River banks
+  ctx.strokeStyle = '#0d47a1';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(rl, GROUND_Y); ctx.lineTo(rl, H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(rr, GROUND_Y); ctx.lineTo(rr, H); ctx.stroke();
+
+  // Right grass + landing strip
+  ctx.fillStyle = '#3d6b4f';
+  ctx.fillRect(rr, GROUND_Y, W - rr, H - GROUND_Y);
+  ctx.fillStyle = '#fde047';
+  ctx.fillRect(rr, GROUND_Y, W - rr, 7);
+
+  // "LAND HERE" text
+  if (W - rr > 80) {
+    ctx.fillStyle = 'rgba(253,224,71,0.7)';
+    ctx.font = 'bold 12px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText('LAND HERE', rr + (W - rr) / 2, GROUND_Y - 10);
+  }
+
+  // Trees
+  drawTree(30, GROUND_Y);
+  drawTree(80, GROUND_Y - 12);
+  drawTree(180, GROUND_Y);
+  if (W - rr > 60) drawTree(rr + 40, GROUND_Y);
+  if (W - rr > 120) drawTree(rr + 100, GROUND_Y - 8);
+}
+
+function drawTree(x, y) {
+  ctx.fillStyle = '#6b4f2e';
+  ctx.fillRect(x - 4, y - 22, 8, 22);
+  ctx.fillStyle = '#2d7a4a';
+  ctx.beginPath();
+  ctx.moveTo(x, y - 60); ctx.lineTo(x - 20, y - 22); ctx.lineTo(x + 20, y - 22);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#38a35e';
+  ctx.beginPath();
+  ctx.moveTo(x, y - 76); ctx.lineTo(x - 14, y - 44); ctx.lineTo(x + 14, y - 44);
+  ctx.closePath(); ctx.fill();
+}
+
+function drawCar() {
+  const cx = car.x + car.w / 2;
+  const cy = car.y + car.h / 2;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(car.angle);
+
+  // Shadow (only when near ground)
+  const shadowAlpha = Math.max(0, 1 - (GROUND_Y - car.y - car.h) / 200);
+  ctx.fillStyle = `rgba(0,0,0,${shadowAlpha * 0.3})`;
+  ctx.beginPath();
+  ctx.ellipse(0, car.h/2 + 4, car.w * 0.46, 6, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Body
+  ctx.fillStyle = '#e63946';
+  ctx.beginPath(); ctx.roundRect(-car.w/2, -car.h/2, car.w, car.h, 7); ctx.fill();
+
+  // Roof
+  ctx.fillStyle = '#c1121f';
+  ctx.beginPath();
+  ctx.roundRect(-car.w/2 + 9, -car.h/2 - 15, car.w - 22, 19, [4,4,0,0]);
+  ctx.fill();
+
+  // Windows
+  ctx.fillStyle = 'rgba(186,230,253,0.85)';
+  ctx.fillRect(-car.w/2 + 11, -car.h/2 - 13, 18, 13);
+  ctx.fillRect(-car.w/2 + 33, -car.h/2 - 13, 14, 13);
+
+  // Headlight
+  ctx.fillStyle = '#fef08a';
+  ctx.beginPath();
+  ctx.ellipse(car.w/2 - 4, -car.h/4, 5, 4, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Wheels
+  drawWheel(-car.w/3, car.h/2);
+  drawWheel( car.w/3, car.h/2);
+
+  // Boost flame
+  if (boosted && (state === 'driving' || state === 'airborne')) {
+    const flameLen = 18 + Math.random() * 12;
+    ctx.fillStyle = '#ff6b35';
+    ctx.beginPath();
+    ctx.moveTo(-car.w/2,  -5);
+    ctx.lineTo(-car.w/2 - flameLen, 0);
+    ctx.lineTo(-car.w/2,  5);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.moveTo(-car.w/2, -3);
+    ctx.lineTo(-car.w/2 - flameLen * 0.6, 0);
+    ctx.lineTo(-car.w/2,  3);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // Flip trail
+  if (car.spinning) {
+    ctx.fillStyle = 'rgba(168,85,247,0.5)';
+    for (let i = 1; i <= 4; i++) {
+      ctx.beginPath();
+      ctx.arc(-car.w/2 - i * 12, (Math.random()-0.5)*16, 4 - i*0.5, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawWheel(ox, oy) {
+  ctx.fillStyle = '#1a1a1a';
+  ctx.beginPath(); ctx.arc(ox, oy, 10, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#555';
+  ctx.beginPath(); ctx.arc(ox, oy,  5, 0, Math.PI*2); ctx.fill();
+}
+
+function drawCoins() {
+  airCoins.forEach(c => {
+    if (c.collected) return;
+    c.anim += 0.09;
+    const by = Math.sin(c.anim) * 4;
+    // Glow
+    ctx.fillStyle = 'rgba(255,215,0,0.18)';
+    ctx.beginPath(); ctx.arc(c.x, c.y + by, c.r + 7, 0, Math.PI*2); ctx.fill();
+    // Coin body
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath(); ctx.arc(c.x, c.y + by, c.r, 0, Math.PI*2); ctx.fill();
+    // Shine
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.beginPath(); ctx.arc(c.x - 3, c.y + by - 3, c.r*0.38, 0, Math.PI*2); ctx.fill();
+    // Label
+    ctx.fillStyle = '#a16207';
+    ctx.font = 'bold 9px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('$', c.x, c.y + by + 0.5);
+  });
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle   = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawHUD() {
+  if (state === 'menu' || state === 'gameover' || state === 'shop') return;
+  ctx.textBaseline = 'top';
+
+  // Level badge
+  ctx.fillStyle = 'rgba(0,0,0,0.52)';
+  ctx.beginPath(); ctx.roundRect(10, 10, 120, 38, 8); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 18px Segoe UI';
+  ctx.textAlign = 'left';
+  ctx.fillText(`Level ${level}`, 22, 19);
+
+  // Coins
+  ctx.fillStyle = 'rgba(0,0,0,0.52)';
+  ctx.beginPath(); ctx.roundRect(140, 10, 165, 38, 8); ctx.fill();
+  ctx.fillStyle = '#ffd700';
+  ctx.font = 'bold 17px Segoe UI';
+  ctx.fillText(`ð° ${totalCoins + sessionCoins}`, 154, 20);
+
+  // River label
+  ctx.fillStyle = 'rgba(0,0,0,0.52)';
+  ctx.beginPath(); ctx.roundRect(W - 175, 10, 165, 38, 8); ctx.fill();
+  ctx.fillStyle = '#93c5fd';
+  ctx.font = '13px Segoe UI';
+  ctx.textAlign = 'right';
+  ctx.fillText(`River: ${riverWidth}px wide`, W - 20, 22);
+
+  // Airborne hints
+  if (state === 'airborne') {
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 15px Segoe UI';
+    ctx.fillStyle = flipUsed ? '#64748b' : '#c084fc';
+    ctx.fillText(
+      flipUsed ? 'ð Flipped! +3 coins on landing' : 'ð Press F or click to Flip for bonus coins!',
+      W/2, 14
+    );
+  }
+
+  // Driving hint
+  if (state === 'driving' && car.x < RAMP_X - 80) {
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 15px Segoe UI';
+    const pulse = Math.sin(frame * 0.1) * 0.3 + 0.7;
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = '#4ade80';
+    ctx.fillText('Click / Space to launch at the ramp!', W/2, 14);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawMenu() {
+  ctx.fillStyle = 'rgba(0,0,0,0.58)';
+  ctx.fillRect(0, 0, W, H);
+
+  // Card
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.beginPath(); ctx.roundRect(W/2 - 220, H/2 - 120, 440, 240, 18); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(W/2 - 220, H/2 - 120, 440, 240, 18); ctx.stroke();
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Title
+  ctx.fillStyle = '#ffd700';
+  ctx.font = 'bold 54px Segoe UI';
+  ctx.fillText('ð CarJumper', W/2, H/2 - 52);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.font = '17px Segoe UI';
+  ctx.fillText('Jump the river Â· Collect coins Â· Upgrade your car!', W/2, H/2 + 5);
+
+  // Pulsing start prompt
+  const pulse = 0.65 + Math.sin(frame * 0.055) * 0.35;
+  ctx.globalAlpha = pulse;
+  ctx.fillStyle = '#4ade80';
+  ctx.font = 'bold 21px Segoe UI';
+  ctx.fillText('Click here or press Space to Start', W/2, H/2 + 68);
+  ctx.globalAlpha = 1;
+}
+
+function drawGameOver() {
+  ctx.fillStyle = 'rgba(0,0,0,0.72)';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.fillStyle = '#f87171';
+  ctx.font = 'bold 50px Segoe UI';
+  ctx.fillText('ð¦ SPLASH! ð¦', W/2, H/2 - 48);
+
+  ctx.fillStyle = '#fff';
+  ctx.font = '22px Segoe UI';
+  ctx.fillText(`You reached Level ${Math.max(1, level - 1)}`, W/2, H/2 + 12);
+
+  ctx.fillStyle = '#ffd700';
+  ctx.font = 'bold 20px Segoe UI';
+  ctx.fillText(`Total coins: ${totalCoins}`, W/2, H/2 + 50);
+
+  const fadeAlpha = 0.4 + Math.sin(frame * 0.07) * 0.35;
+  ctx.globalAlpha = fadeAlpha;
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '15px Segoe UI';
+  ctx.fillText('Click to play again', W/2, H/2 + 98);
+  ctx.globalAlpha = 1;
+}
+
+function drawLanded() {
+  ctx.fillStyle = 'rgba(74,222,128,0.15)';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#4ade80';
+  ctx.font = 'bold 34px Segoe UI';
+  ctx.fillText(`â Level ${level - 1} Complete!`, W/2, H/2 - 22);
+
+  ctx.fillStyle = '#ffd700';
+  ctx.font = '20px Segoe UI';
+  ctx.fillText(`+${sessionCoins} coins${flipUsed ? ' (includes flip bonus!)' : ''}`, W/2, H/2 + 24);
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+//  GAME LOOP
+// âââââââââââââââââââââââââââââââââââââââââââââ
+function loop() {
+  update();
+
+  ctx.clearRect(0, 0, W, H);
+  drawBG();
+  drawGround();
+
+  if (state !== 'menu') {
+    drawCoins();
+    drawCar();
+    drawParticles();
+  }
+
+  drawHUD();
+
+  if (state === 'menu')     drawMenu();
+  if (state === 'gameover') drawGameOver();
+  if (state === 'landed')   drawLanded();
+
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
