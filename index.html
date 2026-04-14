@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>CarJumper ð</title>
+<title>CarJumper 🚗</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -145,23 +145,23 @@ canvas {
   <canvas id="gameCanvas"></canvas>
 
   <div id="buttons">
-    <button class="btn" id="boostBtn">ð Boost  (B)</button>
-    <button class="btn" id="flipBtn">ð Flip  (F)</button>
+    <button class="btn" id="boostBtn">🚀 Boost  (B)</button>
+    <button class="btn" id="flipBtn">🌀 Flip  (F)</button>
   </div>
 
   <div id="shopOverlay">
-    <h2>ðª Upgrade Shop</h2>
+    <h2>🏪 Upgrade Shop</h2>
     <div id="shopMeta"></div>
     <div id="shopCoins"></div>
     <div id="shopGrid"></div>
-    <button id="continueBtn">Next Level â</button>
+    <button id="continueBtn">Next Level →</button>
   </div>
 </div>
 
 <script>
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 //  CANVAS SETUP
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 const canvas  = document.getElementById('gameCanvas');
 const ctx     = canvas.getContext('2d');
 const wrapper = document.getElementById('gameWrapper');
@@ -201,9 +201,9 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
   };
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 //  CONSTANTS
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 const GROUND_Y    = 370;
 const GRAVITY     = 0.46;
 const RAMP_X      = 265;   // edge of ramp where car launches from
@@ -212,21 +212,21 @@ const RIVER_START = 310;   // left bank x
 const RIVER_BASE  = 140;   // starting width
 const RIVER_GROW  = 24;    // pixels wider per level
 
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 //  UPGRADES
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 const UPG = {
-  engine:     { lv:0, max:3, costs:[10,28,55], name:'Engine',      emoji:'ð§', desc:'More launch speed' },
-  springs:    { lv:0, max:3, costs:[10,28,55], name:'Springs',     emoji:'ð', desc:'Jump higher'       },
-  flipCharge: { lv:0, max:3, costs:[15,35,70], name:'Flip Charge', emoji:'â¡', desc:'Faster flip cool'  },
-  turbo:      { lv:0, max:3, costs:[15,35,70], name:'Turbo',       emoji:'ð', desc:'Boost gives more'  },
-  grip:       { lv:0, max:3, costs:[20,45,85], name:'Grip',        emoji:'ðï¸', desc:'Cleaner landings'  },
-  magnet:     { lv:0, max:3, costs:[20,45,85], name:'Coin Magnet', emoji:'ð°', desc:'Bigger coin range' }
+  engine:     { lv:0, max:3, costs:[10,28,55], name:'Engine',      emoji:'🔧', desc:'More launch speed' },
+  springs:    { lv:0, max:3, costs:[10,28,55], name:'Springs',     emoji:'🌀', desc:'Jump higher'       },
+  flipCharge: { lv:0, max:3, costs:[15,35,70], name:'Flip Charge', emoji:'⚡', desc:'Faster flip cool'  },
+  turbo:      { lv:0, max:3, costs:[15,35,70], name:'Turbo',       emoji:'🚀', desc:'Boost gives more'  },
+  grip:       { lv:0, max:3, costs:[20,45,85], name:'Grip',        emoji:'🏎️', desc:'Cleaner landings'  },
+  magnet:     { lv:0, max:3, costs:[20,45,85], name:'Coin Magnet', emoji:'💰', desc:'Bigger coin range' }
 };
 
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 //  GAME STATE
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 let state = 'menu';   // menu | driving | airborne | landed | shop | gameover
 let level = 1;
 let totalCoins   = 0;
@@ -237,9 +237,9 @@ let frame = 0;
 let waveOff = 0;
 let particles = [];
 
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 //  CAR
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 let car = {};
 let boosted  = false;
 let flipUsed = false;
@@ -262,9 +262,9 @@ function resetCar() {
 }
 resetCar();
 
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 //  COINS
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 let airCoins = [];
 function spawnCoins() {
   const out = [];
@@ -282,9 +282,9 @@ function spawnCoins() {
   return out;
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 //  INPUT  (the bug fix: listeners are on window + canvas, not just canvas)
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 const keys = {};
 
 window.addEventListener('keydown', e => {
@@ -297,7 +297,7 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 
-// Canvas click/touch â jump
+// Canvas click/touch → jump
 canvas.addEventListener('pointerdown', e => {
   e.preventDefault();
   if (state === 'airborne') { onFlip(); }
@@ -333,9 +333,9 @@ function onFlip() {
   spawnParticles(car.x + car.w/2, car.y + car.h/2, '#a855f7', 10);
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 //  GAME FLOW
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 function startGame() {
   level      = 1;
   totalCoins = 0;
@@ -391,9 +391,9 @@ function onLand(inRiver) {
   }
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 //  SHOP
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 function openShop() {
   goState('shop');
   renderShop();
@@ -401,8 +401,8 @@ function openShop() {
 }
 
 function renderShop() {
-  document.getElementById('shopMeta').textContent  = `Level ${level - 1} complete â Level ${level} next`;
-  document.getElementById('shopCoins').textContent = `ð° ${totalCoins} coins  (+${sessionCoins} this run)`;
+  document.getElementById('shopMeta').textContent  = `Level ${level - 1} complete — Level ${level} next`;
+  document.getElementById('shopCoins').textContent = `💰 ${totalCoins} coins  (+${sessionCoins} this run)`;
   const grid = document.getElementById('shopGrid');
   grid.innerHTML = '';
 
@@ -422,7 +422,7 @@ function renderShop() {
       <div class="sName">${u.name}</div>
       <div class="sDesc">${u.desc}</div>
       <div class="sBar">${dots}</div>
-      <div class="sCost">${maxed ? 'â MAX' : canAfford ? `ð° ${cost}` : `ð ${cost}`}</div>`;
+      <div class="sCost">${maxed ? '✅ MAX' : canAfford ? `💰 ${cost}` : `🔒 ${cost}`}</div>`;
 
     if (canAfford) {
       div.addEventListener('click', () => {
@@ -441,9 +441,9 @@ document.getElementById('continueBtn').addEventListener('click', () => {
   goState('driving');
 });
 
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 //  PARTICLES
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 function spawnParticles(x, y, color, n) {
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2;
@@ -462,9 +462,9 @@ function updateParticles() {
   });
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 //  UPDATE
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 function update() {
   frame++;
   waveOff += 0.055;
@@ -524,9 +524,9 @@ function update() {
   }
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 //  DRAW
-// âââââââââââââââââââââââââââââââââââââââââââââ
+// ─────────────────────────────────────────────
 function drawBG() {
   // Sky gradient
   const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
@@ -784,7 +784,7 @@ function drawHUD() {
   ctx.beginPath(); ctx.roundRect(140, 10, 165, 38, 8); ctx.fill();
   ctx.fillStyle = '#ffd700';
   ctx.font = 'bold 17px Segoe UI';
-  ctx.fillText(`ð° ${totalCoins + sessionCoins}`, 154, 20);
+  ctx.fillText(`💰 ${totalCoins + sessionCoins}`, 154, 20);
 
   // River label
   ctx.fillStyle = 'rgba(0,0,0,0.52)';
@@ -800,7 +800,7 @@ function drawHUD() {
     ctx.font = 'bold 15px Segoe UI';
     ctx.fillStyle = flipUsed ? '#64748b' : '#c084fc';
     ctx.fillText(
-      flipUsed ? 'ð Flipped! +3 coins on landing' : 'ð Press F or click to Flip for bonus coins!',
+      flipUsed ? '🌀 Flipped! +3 coins on landing' : '🌀 Press F or click to Flip for bonus coins!',
       W/2, 14
     );
   }
@@ -834,11 +834,11 @@ function drawMenu() {
   // Title
   ctx.fillStyle = '#ffd700';
   ctx.font = 'bold 54px Segoe UI';
-  ctx.fillText('ð CarJumper', W/2, H/2 - 52);
+  ctx.fillText('🚗 CarJumper', W/2, H/2 - 52);
 
   ctx.fillStyle = 'rgba(255,255,255,0.75)';
   ctx.font = '17px Segoe UI';
-  ctx.fillText('Jump the river Â· Collect coins Â· Upgrade your car!', W/2, H/2 + 5);
+  ctx.fillText('Jump the river · Collect coins · Upgrade your car!', W/2, H/2 + 5);
 
   // Pulsing start prompt
   const pulse = 0.65 + Math.sin(frame * 0.055) * 0.35;
@@ -858,7 +858,7 @@ function drawGameOver() {
 
   ctx.fillStyle = '#f87171';
   ctx.font = 'bold 50px Segoe UI';
-  ctx.fillText('ð¦ SPLASH! ð¦', W/2, H/2 - 48);
+  ctx.fillText('💦 SPLASH! 💦', W/2, H/2 - 48);
 
   ctx.fillStyle = '#fff';
   ctx.font = '22px Segoe UI';
@@ -868,9 +868,55 @@ function drawGameOver() {
   ctx.font = 'bold 20px Segoe UI';
   ctx.fillText(`Total coins: ${totalCoins}`, W/2, H/2 + 50);
 
-  const fadeAlph±Á¡ôÀ¸Ð¬5Ñ ¹Í¥¸¡Éµ¨À¸ÀÜ¤¨À¸ÌÔì(Ñà¹±½±±Á¡ô±Á¡ì(Ñà¹¥±±MÑå±ôäÑÍàì(Ñà¹½¹ÐôÄÕÁàM½U$ì(Ñà¹¥±±QáÐ 
-±¥¬Ñ¼Á±ä¥¸°\¼È° ¼È¬äà¤ì(Ñà¹±½±±Á¡ôÄì)ô()Õ¹Ñ¥½¸ÉÝ1¹ ¤ì(Ñà¹¥±±MÑå±ôÉ ÜÐ°ÈÈÈ°ÄÈà°À¸ÄÔ¤ì(Ñà¹¥±±IÐ À°À°\° ¤ì((Ñà¹ÑáÑ±¥¸ô¹ÑÈì(Ñà¹ÑáÑ	Í±¥¹ôµ¥±ì(Ñà¹¥±±MÑå±ôÑàÀì(Ñà¹½¹Ðô½±ÌÑÁàM½U$ì(Ñà¹¥±±QáÐ¡r1Ù°í±Ù°´Åô
-½µÁ±Ñ°\¼È° ¼È´ÈÈ¤ì((Ñà¹¥±±MÑå±ôÜÀÀì(Ñà¹½¹ÐôÈÁÁàM½U$ì(Ñà¹¥±±QáÐ¡¬íÍÍÍ¥½¹
-½¥¹Íô½¥¹Ìí±¥ÁUÍü¡¥¹±ÕÌ±¥À½¹ÕÌ¤èõ°\¼È° ¼È¬ÈÐ¤ì)ô((¼¼RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR (¼¼51==@(¼¼RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR )Õ¹Ñ¥½¸±½½À ¤ì(ÕÁÑ ¤ì((Ñà¹±ÉIÐ À°À°\° ¤ì(ÉÝ	 ¤ì(ÉÝÉ½Õ¹ ¤ì((¥¡ÍÑÑôôµ¹Ô¤ì(ÉÝ
-½¥¹Ì ¤ì(ÉÝ
-È ¤ì(ÉÝAÉÑ¥±Ì ¤ì(ô((ÉÝ!U ¤ì((¥¡ÍÑÑôôôµ¹Ô¤ÉÝ5¹Ô ¤ì(¥¡ÍÑÑôôôµ½ÙÈ¤ÉÝµ=ÙÈ ¤ì(¥¡ÍÑÑôôô±¹¤ÉÝ1¹ ¤ì((ÉÅÕÍÑ¹¥µÑ¥½¹Éµ¡±½½À¤ì)ô()±½½À ¤ì(ð½ÍÉ¥ÁÐø(ð½½äø(ð
+  const fadeAlpha = 0.4 + Math.sin(frame * 0.07) * 0.35;
+  ctx.globalAlpha = fadeAlpha;
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '15px Segoe UI';
+  ctx.fillText('Click to play again', W/2, H/2 + 98);
+  ctx.globalAlpha = 1;
+}
+
+function drawLanded() {
+  ctx.fillStyle = 'rgba(74,222,128,0.15)';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#4ade80';
+  ctx.font = 'bold 34px Segoe UI';
+  ctx.fillText(`✅ Level ${level - 1} Complete!`, W/2, H/2 - 22);
+
+  ctx.fillStyle = '#ffd700';
+  ctx.font = '20px Segoe UI';
+  ctx.fillText(`+${sessionCoins} coins${flipUsed ? ' (includes flip bonus!)' : ''}`, W/2, H/2 + 24);
+}
+
+// ─────────────────────────────────────────────
+//  GAME LOOP
+// ─────────────────────────────────────────────
+function loop() {
+  update();
+
+  ctx.clearRect(0, 0, W, H);
+  drawBG();
+  drawGround();
+
+  if (state !== 'menu') {
+    drawCoins();
+    drawCar();
+    drawParticles();
+  }
+
+  drawHUD();
+
+  if (state === 'menu')     drawMenu();
+  if (state === 'gameover') drawGameOver();
+  if (state === 'landed')   drawLanded();
+
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
