@@ -476,8 +476,12 @@ function update() {
     car.x  += car.vx;
     car.y   = GROUND_Y - car.h;
 
-    // Stop at ramp edge — player must press Space/click to launch
-    if (car.x + car.w > RAMP_X) car.x = RAMP_X - car.w;
+    // Allow left/right keys to nudge speed while driving
+    if (keys['arrowright'] || keys['d']) car.vx = Math.min(car.vx + 0.4, 7);
+    if (keys['arrowleft']  || keys['a']) car.vx = Math.max(car.vx - 0.3, 0.5);
+
+    // Stop at ramp launch point — player must press Space/click to jump
+    if (car.x + car.w / 2 > RAMP_X + 20) car.x = RAMP_X + 20 - car.w / 2;
   }
 
   if (state === 'airborne') {
