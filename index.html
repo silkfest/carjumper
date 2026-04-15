@@ -236,6 +236,7 @@ let riverWidth   = RIVER_BASE;
 let frame = 0;
 let waveOff = 0;
 let particles = [];
+let airCoins  = [];
 
 // ─────────────────────────────────────────────
 //  CAR
@@ -264,9 +265,7 @@ resetCar();
 
 // ─────────────────────────────────────────────
 //  COINS
-// ─────────────────────────────────────────────
-let airCoins = [];
-function spawnCoins() {
+// ─────────────────────────────────────────────function spawnCoins() {
   const out = [];
   const count = 3 + UPG.magnet.lv * 2 + Math.floor(Math.random() * 2);
   const rl = RIVER_START, rr = RIVER_START + riverWidth;
