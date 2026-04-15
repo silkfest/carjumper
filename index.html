@@ -476,8 +476,8 @@ function update() {
     car.x  += car.vx;
     car.y   = GROUND_Y - car.h;
 
-    // Auto-launch if player drives past ramp without clicking
-    if (car.x + car.w / 2 > RAMP_X + 20 && state === 'driving') launch();
+    // Stop at ramp edge — player must press Space/click to launch
+    if (car.x + car.w > RAMP_X) car.x = RAMP_X - car.w;
   }
 
   if (state === 'airborne') {
@@ -512,8 +512,8 @@ function update() {
       const rl  = RIVER_START;
       const rr  = RIVER_START + riverWidth;
       const inRiver = cx > rl && cx < rr;
-      const landed  = car.x >= rr - 10;
-      onLand(inRiver || !landed);
+      const clearRight = cx >= rr;
+      onLand(inRiver || !clearRight);
     }
     if (car.y > H + 80) onLand(true);
   }
@@ -806,7 +806,7 @@ function drawHUD() {
   }
 
   // Driving hint
-  if (state === 'driving' && car.x < RAMP_X - 80) {
+  if (state === 'driving') {
     ctx.textAlign = 'center';
     ctx.font = 'bold 15px Segoe UI';
     const pulse = Math.sin(frame * 0.1) * 0.3 + 0.7;
