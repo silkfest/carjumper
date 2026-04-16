@@ -922,8 +922,6 @@ function loop() {
   if (state === 'menu')     drawMenu();
   if (state === 'gameover') drawGameOver();
   if (state === 'landed')   drawLanded();
-
-  requestAnimationFrame(loop);
 }
 
 // Start loop — restart if tab regains visibility (handles background-tab rAF throttling)
