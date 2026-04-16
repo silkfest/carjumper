@@ -483,6 +483,8 @@ function update() {
     car.x += car.vx;
     car.y  = GROUND_Y - car.h;
     if (car.x < 0) { car.x = 0; car.vx = 0; }
+    // Drove into the river without jumping = splash
+    if (car.x + car.w / 2 >= RIVER_START) onLand(true);
   }
 
   if (state === 'airborne') {
