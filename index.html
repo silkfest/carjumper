@@ -212,6 +212,7 @@ const RAMP_X      = RIVER_START - 18; // ramp peak flush with river left bank
 const RIVER_BASE  = 100;   // starting width
 const RIVER_GROW  = 18;    // pixels wider per level
 const RIVER_MAX   = W - RIVER_START - 110; // right bank never goes off-screen
+const ISLAND_W    = 45;    // land bridge width between rivers in phase 2
 
 // Returns the surface y at car-centre x (road, ramp slope, ramp top)
 function surfaceY(cx) {
@@ -224,9 +225,16 @@ function surfaceY(cx) {
   return GROUND_Y;
 }
 
+// Rightmost bank x (after all rivers)
+function getRightBank() {
+  return river2Width > 0
+    ? RIVER_START + riverWidth + ISLAND_W + river2Width
+    : RIVER_START + riverWidth;
+}
+
 // Returns landing surface y on the right ramp (or GROUND_Y elsewhere)
 function rightSurfaceY(cx) {
-  const rr = RIVER_START + riverWidth;
+  const rr = getRightBank();
   if (cx >= rr && cx <= rr + 18)       return GROUND_Y - RAMP_H;
   if (cx > rr + 18 && cx <= rr + 68)  return GROUND_Y - RAMP_H * (1 - (cx - rr - 18) / 50);
   return GROUND_Y;
@@ -253,6 +261,7 @@ let lives        = 3;
 let totalCoins   = 0;
 let sessionCoins = 0;
 let riverWidth   = RIVER_BASE;
+let river2Width  = 0;   // second river (phase 2+), 0 = not active
 
 let frame = 0;
 let waveOff = 0;
@@ -289,17 +298,17 @@ resetCar();
 // ─────────────────────────────────────────────
 function spawnCoins() {
   const out = [];
-  const count = 3 + UPG.magnet.lv * 2 + Math.floor(Math.random() * 2);
-  const rl = RIVER_START, rr = RIVER_START + riverWidth;
-  for (let i = 0; i < count; i++) {
-    out.push({
-      x: rl + 18 + Math.random() * (riverWidth - 36),
-      y: GROUND_Y - 65 - Math.random() * 90,
-      r: 11,
-      anim: Math.random() * Math.PI * 2,
-      collected: false
-    });
-  }
+  const base = 3 + UPG.magnet.lv * 2 + Math.floor(Math.random() * 2);
+  const addCoins = (rl, rw) => {
+    if (rw < 36) return;
+    for (let i = 0; i < base; i++) {
+      out.push({ x: rl + 18 + Math.random() * (rw - 36),
+                 y: GROUND_Y - 65 - Math.random() * 90,
+                 r: 11, anim: Math.random() * Math.PI * 2, collected: false });
+    }
+  };
+  addCoins(RIVER_START, riverWidth);
+  if (river2Width > 0) addCoins(RIVER_START + riverWidth + ISLAND_W, river2Width);
   return out;
 }
 
@@ -363,7 +372,8 @@ function startGame() {
   level      = 1;
   lives      = 3;
   totalCoins = 0;
-  riverWidth = RIVER_BASE;
+  riverWidth  = RIVER_BASE;
+  river2Width = 0;
   Object.values(UPG).forEach(u => u.lv = 0);
   resetCar();
   goState('driving');
@@ -414,7 +424,15 @@ function onLand(inRiver) {
     car.angle = 0;
     totalCoins += sessionCoins;
     level++;
-    riverWidth = Math.min(RIVER_BASE + (level - 1) * RIVER_GROW, RIVER_MAX);
+    if (level <= 20) {
+      riverWidth  = Math.min(RIVER_BASE + (level - 1) * RIVER_GROW, RIVER_MAX);
+      river2Width = 0;
+    } else {
+      // Phase 2 — double river, reset smaller and grow again
+      const pl    = level - 20;
+      riverWidth  = Math.min(75 + (pl - 1) * 10, 150);
+      river2Width = Math.min(55 + (pl - 1) * 8,  120);
+    }
     spawnParticles(car.x + car.w/2, car.y, '#4ade80', 14);
     goState('landed');
     setTimeout(() => openShop(), 900);
@@ -553,15 +571,18 @@ function update() {
     });
 
     // Land detection — check against right ramp surface or ground
-    const lcx     = car.x + car.w / 2;
+    const lcx      = car.x + car.w / 2;
     const landSurf = rightSurfaceY(lcx);
     if (car.y + car.h >= landSurf) {
       car.y = landSurf - car.h;
-      const rl = RIVER_START;
-      const rr = RIVER_START + riverWidth;
-      const inRiver    = lcx > rl && lcx < rr;
+      const rl  = RIVER_START;
+      const rr1 = rl + riverWidth;
+      const rr  = getRightBank();
+      const inRiver1   = lcx > rl  && lcx < rr1;
+      const inIsland   = river2Width > 0 && lcx >= rr1 && lcx < rr1 + ISLAND_W;
+      const inRiver2   = river2Width > 0 && lcx >= rr1 + ISLAND_W && lcx < rr;
       const clearRight = lcx >= rr;
-      onLand(inRiver || !clearRight);
+      onLand(inRiver1 || inIsland || inRiver2 || !clearRight);
     }
     if (car.y > H + 80) onLand(true);
   }
@@ -606,8 +627,9 @@ function drawCloud(x, y, s) {
 }
 
 function drawGround() {
-  const rl = RIVER_START;
-  const rr = RIVER_START + riverWidth;
+  const rl  = RIVER_START;
+  const rr1 = rl + riverWidth;
+  const rr  = getRightBank();
 
   // Left grass
   ctx.fillStyle = '#3d6b4f';
@@ -640,37 +662,57 @@ function drawGround() {
   ctx.lineTo(RAMP_X, GROUND_Y - RAMP_H);
   ctx.stroke();
 
-  // River
+  // ── River 1 ──
   ctx.fillStyle = '#1565c0';
   ctx.fillRect(rl, GROUND_Y, riverWidth, H - GROUND_Y);
 
-  // Wave 1
-  ctx.fillStyle = 'rgba(255,255,255,0.22)';
-  ctx.beginPath();
-  ctx.moveTo(rl, GROUND_Y + 12);
-  for (let wx = rl; wx <= rr; wx += 4) {
-    ctx.lineTo(wx, GROUND_Y + 12 + Math.sin((wx / 28) + waveOff) * 5);
-  }
-  ctx.lineTo(rr, GROUND_Y + 12);
-  ctx.lineTo(rl, GROUND_Y + 12);
-  ctx.fill();
+  const drawWaves = (wl, wr) => {
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.beginPath(); ctx.moveTo(wl, GROUND_Y + 12);
+    for (let wx = wl; wx <= wr; wx += 4)
+      ctx.lineTo(wx, GROUND_Y + 12 + Math.sin((wx / 28) + waveOff) * 5);
+    ctx.lineTo(wr, GROUND_Y + 12); ctx.lineTo(wl, GROUND_Y + 12); ctx.fill();
 
-  // Wave 2
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
-  ctx.beginPath();
-  ctx.moveTo(rl, GROUND_Y + 28);
-  for (let wx = rl; wx <= rr; wx += 4) {
-    ctx.lineTo(wx, GROUND_Y + 28 + Math.sin((wx / 22) + waveOff * 1.4 + 1.2) * 4);
-  }
-  ctx.lineTo(rr, GROUND_Y + 28);
-  ctx.lineTo(rl, GROUND_Y + 28);
-  ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.beginPath(); ctx.moveTo(wl, GROUND_Y + 28);
+    for (let wx = wl; wx <= wr; wx += 4)
+      ctx.lineTo(wx, GROUND_Y + 28 + Math.sin((wx / 22) + waveOff * 1.4 + 1.2) * 4);
+    ctx.lineTo(wr, GROUND_Y + 28); ctx.lineTo(wl, GROUND_Y + 28); ctx.fill();
+  };
+  drawWaves(rl, rr1);
 
-  // River banks
-  ctx.strokeStyle = '#0d47a1';
-  ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.moveTo(rl, GROUND_Y); ctx.lineTo(rl, H); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(rr, GROUND_Y); ctx.lineTo(rr, H); ctx.stroke();
+  ctx.strokeStyle = '#0d47a1'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(rl,  GROUND_Y); ctx.lineTo(rl,  H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(rr1, GROUND_Y); ctx.lineTo(rr1, H); ctx.stroke();
+
+  // ── Island + River 2 (phase 2) ──
+  if (river2Width > 0) {
+    const il = rr1, ir = rr1 + ISLAND_W;
+    const r2l = ir, r2r = rr;
+
+    // Island — rocky sandbar, can't land here
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(il, GROUND_Y, ISLAND_W, H - GROUND_Y);
+    ctx.fillStyle = '#92400e';
+    ctx.fillRect(il, GROUND_Y, ISLAND_W, 6);
+    // Rocks
+    ctx.fillStyle = '#78350f';
+    for (let rx = il + 6; rx < ir - 6; rx += 14) {
+      ctx.beginPath(); ctx.ellipse(rx, GROUND_Y + 14, 5, 4, 0, 0, Math.PI*2); ctx.fill();
+    }
+    // Island label
+    ctx.fillStyle = 'rgba(255,200,100,0.8)';
+    ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText('ROCKS', il + ISLAND_W/2, GROUND_Y - 8);
+
+    // River 2
+    ctx.fillStyle = '#1565c0';
+    ctx.fillRect(r2l, GROUND_Y, river2Width, H - GROUND_Y);
+    drawWaves(r2l, r2r);
+    ctx.strokeStyle = '#0d47a1'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(r2l, GROUND_Y); ctx.lineTo(r2l, H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(r2r, GROUND_Y); ctx.lineTo(r2r, H); ctx.stroke();
+  }
 
   // Right grass + landing strip
   ctx.fillStyle = '#3d6b4f';
@@ -961,6 +1003,12 @@ function drawLanded() {
   ctx.fillStyle = '#ffd700';
   ctx.font = '20px Segoe UI';
   ctx.fillText(`+${sessionCoins} coins${flipUsed ? ' (includes flip bonus!)' : ''}`, W/2, H/2 + 24);
+
+  if (level === 21) {
+    ctx.fillStyle = '#f97316';
+    ctx.font = 'bold 17px Segoe UI';
+    ctx.fillText('⚠️ Double River challenge starts next level!', W/2, H/2 + 60);
+  }
 }
 
 // ─────────────────────────────────────────────
