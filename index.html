@@ -917,13 +917,26 @@ function drawGround() {
     ctx.fillRect(il, GROUND_Y, ISLAND_W, H - GROUND_Y);
     ctx.fillStyle = '#92400e';
     ctx.fillRect(il, GROUND_Y, ISLAND_W, 6);
-    ctx.fillStyle = '#78350f';
-    for (let rx = il + 6; rx < ir - 6; rx += 14) {
-      ctx.beginPath(); ctx.ellipse(rx, GROUND_Y + 14, 5, 4, 0, 0, Math.PI*2); ctx.fill();
+    // Rocks grow taller every 10 levels
+    const rockH = Math.min(10 + Math.floor(level / 10) * 14, 80);
+    for (let rx = il + 6; rx < ir - 6; rx += 13) {
+      const spikeH = rockH * (0.6 + Math.abs(Math.sin(rx * 1.7)) * 0.4);
+      ctx.fillStyle = '#78350f';
+      ctx.beginPath();
+      ctx.moveTo(rx - 6, GROUND_Y);
+      ctx.lineTo(rx,     GROUND_Y - spikeH);
+      ctx.lineTo(rx + 6, GROUND_Y);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#4a1f06';
+      ctx.beginPath();
+      ctx.moveTo(rx - 3, GROUND_Y - spikeH * 0.55);
+      ctx.lineTo(rx,     GROUND_Y - spikeH);
+      ctx.lineTo(rx + 3, GROUND_Y - spikeH * 0.55);
+      ctx.closePath(); ctx.fill();
     }
-    ctx.fillStyle = 'rgba(255,200,100,0.8)';
+    ctx.fillStyle = 'rgba(255,200,100,0.9)';
     ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
-    ctx.fillText('ROCKS', il + ISLAND_W/2, GROUND_Y - 8);
+    ctx.fillText('ROCKS', il + ISLAND_W/2, GROUND_Y - rockH - 8);
 
     ctx.fillStyle = t.river;
     ctx.fillRect(r2l, GROUND_Y, river2Width, H - GROUND_Y);
