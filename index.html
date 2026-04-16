@@ -248,7 +248,7 @@ let flipCooldown = 0;
 
 function resetCar() {
   car = {
-    x: 55, y: GROUND_Y - 30,
+    x: 10, y: GROUND_Y - 30,
     vx: 0, vy: 0,
     angle: 0,
     w: 58, h: 28,
@@ -289,9 +289,11 @@ const keys = {};
 
 window.addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
-  if (keys[k]) return;
+  // Always prevent default for game keys (stops page scroll on arrows/space)
+  if ([' ','enter','arrowleft','arrowright','arrowup','arrowdown'].includes(k)) e.preventDefault();
+  if (keys[k]) return;   // already held — ignore repeat for one-shot actions
   keys[k] = true;
-  if (k === ' ' || k === 'enter') { e.preventDefault(); onJump(); }
+  if (k === ' ' || k === 'enter') { onJump(); }
   if (k === 'f')                  { onFlip();  }
   if (k === 'b')                  { onBoost(); }
 });
@@ -347,12 +349,11 @@ function startGame() {
 
 function launch() {
   if (state !== 'driving') return;
-  const speedMult  = 1 + UPG.engine.lv  * 0.22;
   const springMult = 1 + UPG.springs.lv * 0.28;
   const boostBonus = boosted ? (1.6 + UPG.turbo.lv * 0.5) : 0;
-
-  const spd = Math.max(car.vx, 2.5 * speedMult);
-  car.vx = spd * 1.7;
+  // Horizontal speed carries over from driving (player-controlled)
+  // Apply small launch boost so even moderate speed feels punchy
+  car.vx = Math.max(car.vx, 1) * 1.35;
   car.vy = -(9.5 * springMult + boostBonus);
   car.angle = -0.22;
   goState('airborne');
@@ -471,17 +472,17 @@ function update() {
   updateParticles();
 
   if (state === 'driving') {
-    const target = (2.8 + UPG.engine.lv * 0.45) * (boosted ? (1.35 + UPG.turbo.lv * 0.22) : 1);
-    car.vx += (target - car.vx) * 0.07;
-    car.x  += car.vx;
-    car.y   = GROUND_Y - car.h;
-
-    // Allow left/right keys to nudge speed while driving
-    if (keys['arrowright'] || keys['d']) car.vx = Math.min(car.vx + 0.4, 7);
-    if (keys['arrowleft']  || keys['a']) car.vx = Math.max(car.vx - 0.3, 0.5);
-
-    // Stop at ramp launch point — player must press Space/click to jump
-    if (car.x + car.w / 2 > RAMP_X + 20) car.x = RAMP_X + 20 - car.w / 2;
+    const maxSpd = (5 + UPG.engine.lv * 0.8) * (boosted ? (1.35 + UPG.turbo.lv * 0.22) : 1);
+    if (keys['arrowright'] || keys['d']) {
+      car.vx = Math.min(car.vx + 0.28, maxSpd);
+    } else if (keys['arrowleft'] || keys['a']) {
+      car.vx = Math.max(car.vx - 0.4, 0);
+    } else {
+      car.vx *= 0.97;   // gentle coast when no key held
+    }
+    car.x += car.vx;
+    car.y  = GROUND_Y - car.h;
+    if (car.x < 0) { car.x = 0; car.vx = 0; }
   }
 
   if (state === 'airborne') {
@@ -816,7 +817,10 @@ function drawHUD() {
     const pulse = Math.sin(frame * 0.1) * 0.3 + 0.7;
     ctx.globalAlpha = pulse;
     ctx.fillStyle = '#4ade80';
-    ctx.fillText('Click / Space to launch at the ramp!', W/2, 14);
+    const hint = car.vx < 1
+      ? 'Hold → or D to drive,  then Space to jump!'
+      : 'Space or click to jump!   F to flip in the air';
+    ctx.fillText(hint, W/2, 14);
     ctx.globalAlpha = 1;
   }
 }
