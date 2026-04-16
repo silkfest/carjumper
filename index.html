@@ -223,6 +223,14 @@ function surfaceY(cx) {
   return GROUND_Y;
 }
 
+// Returns landing surface y on the right ramp (or GROUND_Y elsewhere)
+function rightSurfaceY(cx) {
+  const rr = RIVER_START + riverWidth;
+  if (cx >= rr && cx <= rr + 18)       return GROUND_Y - RAMP_H;
+  if (cx > rr + 18 && cx <= rr + 68)  return GROUND_Y - RAMP_H * (1 - (cx - rr - 18) / 50);
+  return GROUND_Y;
+}
+
 // ─────────────────────────────────────────────
 //  UPGRADES
 // ─────────────────────────────────────────────
@@ -240,6 +248,7 @@ const UPG = {
 // ─────────────────────────────────────────────
 let state = 'menu';   // menu | driving | airborne | landed | shop | gameover
 let level = 1;
+let lives        = 3;
 let totalCoins   = 0;
 let sessionCoins = 0;
 let riverWidth   = RIVER_BASE;
@@ -351,6 +360,7 @@ function onFlip() {
 // ─────────────────────────────────────────────
 function startGame() {
   level      = 1;
+  lives      = 3;
   totalCoins = 0;
   riverWidth = RIVER_BASE;
   Object.values(UPG).forEach(u => u.lv = 0);
@@ -384,11 +394,18 @@ function goState(s) {
 
 function onLand(inRiver) {
   if (inRiver) {
-    goState('gameover');
+    totalCoins += sessionCoins;   // bank coins even on a failed attempt
+    lives--;
     spawnParticles(car.x + car.w/2, GROUND_Y, '#1e90ff', 20);
-    setTimeout(() => goState('menu'), 3200);
+    goState('gameover');
+    if (lives > 0) {
+      setTimeout(() => { resetCar(); goState('driving'); }, 2200);
+    } else {
+      setTimeout(() => goState('menu'), 3200);
+    }
   } else {
-    // Success
+    // Success — reset lives for the next level
+    lives = 3;
     if (flipUsed) sessionCoins += 3;
     car.vx  *= (0.28 - UPG.grip.lv * 0.04);
     car.vy   = 0;
@@ -534,14 +551,15 @@ function update() {
       }
     });
 
-    // Land detection
-    if (car.y + car.h >= GROUND_Y) {
-      car.y = GROUND_Y - car.h;
-      const cx  = car.x + car.w / 2;
-      const rl  = RIVER_START;
-      const rr  = RIVER_START + riverWidth;
-      const inRiver = cx > rl && cx < rr;
-      const clearRight = cx >= rr;
+    // Land detection — check against right ramp surface or ground
+    const lcx     = car.x + car.w / 2;
+    const landSurf = rightSurfaceY(lcx);
+    if (car.y + car.h >= landSurf) {
+      car.y = landSurf - car.h;
+      const rl = RIVER_START;
+      const rr = RIVER_START + riverWidth;
+      const inRiver    = lcx > rl && lcx < rr;
+      const clearRight = lcx >= rr;
       onLand(inRiver || !clearRight);
     }
     if (car.y > H + 80) onLand(true);
@@ -659,6 +677,23 @@ function drawGround() {
   ctx.fillStyle = '#fde047';
   ctx.fillRect(rr, GROUND_Y, W - rr, 7);
 
+  // Right landing ramp (slopes down from river edge)
+  const rampTop = GROUND_Y - RAMP_H;
+  ctx.fillStyle = '#5a5a5a';
+  ctx.beginPath();
+  ctx.moveTo(rr,      GROUND_Y);
+  ctx.lineTo(rr,      rampTop);
+  ctx.lineTo(rr + 18, rampTop);
+  ctx.lineTo(rr + 68, GROUND_Y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(rr + 18, rampTop);
+  ctx.lineTo(rr + 68, GROUND_Y);
+  ctx.stroke();
+
   // "LAND HERE" text
   if (W - rr > 80) {
     ctx.fillStyle = 'rgba(253,224,71,0.7)';
@@ -667,12 +702,12 @@ function drawGround() {
     ctx.fillText('LAND HERE', rr + (W - rr) / 2, GROUND_Y - 10);
   }
 
-  // Trees
+  // Trees (kept clear of ramps)
   drawTree(30, GROUND_Y);
   drawTree(80, GROUND_Y - 12);
   drawTree(180, GROUND_Y);
-  if (W - rr > 60) drawTree(rr + 40, GROUND_Y);
-  if (W - rr > 120) drawTree(rr + 100, GROUND_Y - 8);
+  if (W - rr > 90)  drawTree(rr + 90,  GROUND_Y);
+  if (W - rr > 160) drawTree(rr + 160, GROUND_Y - 8);
 }
 
 function drawTree(x, y) {
@@ -815,13 +850,12 @@ function drawHUD() {
   ctx.font = 'bold 17px Segoe UI';
   ctx.fillText(`💰 ${totalCoins + sessionCoins}`, 154, 20);
 
-  // River label
+  // Lives (hearts)
   ctx.fillStyle = 'rgba(0,0,0,0.52)';
-  ctx.beginPath(); ctx.roundRect(W - 175, 10, 165, 38, 8); ctx.fill();
-  ctx.fillStyle = '#93c5fd';
-  ctx.font = '13px Segoe UI';
+  ctx.beginPath(); ctx.roundRect(W - 130, 10, 120, 38, 8); ctx.fill();
+  ctx.font = 'bold 20px Segoe UI';
   ctx.textAlign = 'right';
-  ctx.fillText(`River: ${riverWidth}px wide`, W - 20, 22);
+  ctx.fillText('❤️'.repeat(lives) + '🖤'.repeat(Math.max(0, 3 - lives)), W - 14, 32);
 
   // Airborne hints
   if (state === 'airborne') {
@@ -884,28 +918,33 @@ function drawMenu() {
 function drawGameOver() {
   ctx.fillStyle = 'rgba(0,0,0,0.72)';
   ctx.fillRect(0, 0, W, H);
-
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
   ctx.fillStyle = '#f87171';
   ctx.font = 'bold 50px Segoe UI';
-  ctx.fillText('💦 SPLASH! 💦', W/2, H/2 - 48);
+  ctx.fillText('💦 SPLASH! 💦', W/2, H/2 - 60);
 
-  ctx.fillStyle = '#fff';
-  ctx.font = '22px Segoe UI';
-  ctx.fillText(`You reached Level ${Math.max(1, level - 1)}`, W/2, H/2 + 12);
-
-  ctx.fillStyle = '#ffd700';
-  ctx.font = 'bold 20px Segoe UI';
-  ctx.fillText(`Total coins: ${totalCoins}`, W/2, H/2 + 50);
-
-  const fadeAlpha = 0.4 + Math.sin(frame * 0.07) * 0.35;
-  ctx.globalAlpha = fadeAlpha;
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '15px Segoe UI';
-  ctx.fillText('Click to play again', W/2, H/2 + 98);
-  ctx.globalAlpha = 1;
+  if (lives > 0) {
+    ctx.fillStyle = '#fff';
+    ctx.font = '22px Segoe UI';
+    ctx.fillText(`${lives} ${lives === 1 ? 'life' : 'lives'} remaining — retrying level ${level}…`, W/2, H/2 - 4);
+    ctx.font = '30px Segoe UI';
+    ctx.fillText('❤️'.repeat(lives) + '🖤'.repeat(3 - lives), W/2, H/2 + 46);
+  } else {
+    ctx.fillStyle = '#fff';
+    ctx.font = '22px Segoe UI';
+    ctx.fillText(`You reached Level ${Math.max(1, level)}`, W/2, H/2 - 4);
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 20px Segoe UI';
+    ctx.fillText(`Total coins: ${totalCoins}`, W/2, H/2 + 38);
+    const fadeAlpha = 0.4 + Math.sin(frame * 0.07) * 0.35;
+    ctx.globalAlpha = fadeAlpha;
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '15px Segoe UI';
+    ctx.fillText('Click to play again', W/2, H/2 + 84);
+    ctx.globalAlpha = 1;
+  }
 }
 
 function drawLanded() {
