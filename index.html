@@ -472,13 +472,13 @@ function update() {
   updateParticles();
 
   if (state === 'driving') {
-    const maxSpd = (5 + UPG.engine.lv * 0.8) * (boosted ? (1.35 + UPG.turbo.lv * 0.22) : 1);
+    const maxSpd = (3 + UPG.engine.lv * 0.5) * (boosted ? (1.35 + UPG.turbo.lv * 0.22) : 1);
     if (keys['arrowright'] || keys['d']) {
-      car.vx = Math.min(car.vx + 0.28, maxSpd);
+      car.vx = Math.min(car.vx + 0.06, maxSpd);
     } else if (keys['arrowleft'] || keys['a']) {
-      car.vx = Math.max(car.vx - 0.4, 0);
+      car.vx = Math.max(car.vx - 0.15, 0);
     } else {
-      car.vx *= 0.97;   // gentle coast when no key held
+      car.vx *= 0.90;   // coast to a stop when no key held
     }
     car.x += car.vx;
     car.y  = GROUND_Y - car.h;
