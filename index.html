@@ -206,9 +206,9 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 // ─────────────────────────────────────────────
 const GROUND_Y    = 370;
 const GRAVITY     = 0.46;
-const RAMP_X      = 265;   // edge of ramp where car launches from
+const RAMP_X      = 380;   // edge of ramp where car launches from
 const RAMP_H      = 38;
-const RIVER_START = 310;   // left bank x
+const RIVER_START = 450;   // left bank x
 const RIVER_BASE  = 140;   // starting width
 const RIVER_GROW  = 24;    // pixels wider per level
 
@@ -354,7 +354,7 @@ function launch() {
   // Horizontal speed carries over from driving (player-controlled)
   // Apply small launch boost so even moderate speed feels punchy
   car.vx = Math.max(car.vx, 1) * 1.35;
-  car.vy = -(9.5 * springMult + boostBonus);
+  car.vy = -(11 * springMult + boostBonus);
   car.angle = -0.22;
   goState('airborne');
   document.getElementById('flipBtn').disabled = false;
