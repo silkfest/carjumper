@@ -206,7 +206,6 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 // ─────────────────────────────────────────────
 const GROUND_Y    = 370;
 const GRAVITY     = 0.46;
-const RAMP_H      = 38;
 const RIVER_START = 350;   // left bank x
 const RAMP_X      = RIVER_START - 18; // ramp peak flush with river left bank
 const RIVER_BASE  = 100;   // starting width
@@ -214,29 +213,79 @@ const RIVER_GROW  = 18;    // pixels wider per level
 const RIVER_MAX   = W - RIVER_START - 110; // right bank never goes off-screen
 const ISLAND_W    = 45;    // land bridge width between rivers in phase 2
 
-// Returns the surface y at car-centre x (road, ramp slope, ramp top)
+// Cloud World
+const CLOUD_ZONE_Y  = 80;   // car.y below this → entering cloud zone
+const CLOUD_GRAVITY = 0.14; // floaty physics up there
+
+// ─────────────────────────────────────────────
+//  LEVEL THEME  (changes sky, ground, river, etc.)
+// ─────────────────────────────────────────────
+function getTheme() {
+  if (level >= 21) return {
+    sky1:'#08002a', sky2:'#3b0068',
+    grass:'#1a0535', road:'#110220', roadLine:'#7c3aed',
+    river:'#2810b0', riverDark:'#10058a',
+    name:'🌌 Cosmic Arena', nameColor:'#c084fc',
+    sun: null
+  };
+  if (level >= 16) return {
+    sky1:'#8ab4c8', sky2:'#d8eef8',
+    grass:'#c0d8e8', road:'#8090a0', roadLine:'#e2e8f0',
+    river:'#4499cc', riverDark:'#2266aa',
+    name:'❄️ Ice Stadium', nameColor:'#bae6fd',
+    sun: '#fff8dc'
+  };
+  if (level >= 11) return {
+    sky1:'#7a2208', sky2:'#e87020',
+    grass:'#b07838', road:'#7a6040', roadLine:'#e2d090',
+    river:'#1a38b8', riverDark:'#0a2090',
+    name:'🏜️ Desert Arena', nameColor:'#fb923c',
+    sun: '#ffe040'
+  };
+  if (level >= 6) return {
+    sky1:'#020810', sky2:'#0c1a30',
+    grass:'#0e1e0e', road:'#1a1a1a', roadLine:'#3a4a5a',
+    river:'#0a1e60', riverDark:'#050e38',
+    name:'🌙 Night Stadium', nameColor:'#93c5fd',
+    sun: null   // no sun at night
+  };
+  return {
+    sky1:'#1a3a5c', sky2:'#6eb5d8',
+    grass:'#3d6b4f', road:'#4a4a4a', roadLine:'#e2e8f0',
+    river:'#1565c0', riverDark:'#0d47a1',
+    name:'', nameColor:'#4ade80',
+    sun: '#ffe566'
+  };
+}
+
+// ─────────────────────────────────────────────
+//  DYNAMIC RAMP HEIGHT  (grows every 3 levels)
+// ─────────────────────────────────────────────
+function getRampH() {
+  return Math.min(38 + Math.floor((level - 1) / 3) * 6, 102);
+}
+
+// Surface helpers (use dynamic ramp height)
 function surfaceY(cx) {
-  if (cx >= RAMP_X - 50 && cx < RAMP_X) {
-    return GROUND_Y - ((cx - (RAMP_X - 50)) / 50) * RAMP_H;
-  }
-  if (cx >= RAMP_X && cx <= RAMP_X + 18) {
-    return GROUND_Y - RAMP_H;
-  }
+  const rh = getRampH();
+  if (cx >= RAMP_X - 50 && cx < RAMP_X)
+    return GROUND_Y - ((cx - (RAMP_X - 50)) / 50) * rh;
+  if (cx >= RAMP_X && cx <= RAMP_X + 18)
+    return GROUND_Y - rh;
   return GROUND_Y;
 }
 
-// Rightmost bank x (after all rivers)
 function getRightBank() {
   return river2Width > 0
     ? RIVER_START + riverWidth + ISLAND_W + river2Width
     : RIVER_START + riverWidth;
 }
 
-// Returns landing surface y on the right ramp (or GROUND_Y elsewhere)
 function rightSurfaceY(cx) {
+  const rh = getRampH();
   const rr = getRightBank();
-  if (cx >= rr && cx <= rr + 18)       return GROUND_Y - RAMP_H;
-  if (cx > rr + 18 && cx <= rr + 68)  return GROUND_Y - RAMP_H * (1 - (cx - rr - 18) / 50);
+  if (cx >= rr && cx <= rr + 18)       return GROUND_Y - rh;
+  if (cx > rr + 18 && cx <= rr + 68)  return GROUND_Y - rh * (1 - (cx - rr - 18) / 50);
   return GROUND_Y;
 }
 
@@ -261,19 +310,76 @@ let lives        = 3;
 let totalCoins   = 0;
 let sessionCoins = 0;
 let riverWidth   = RIVER_BASE;
-let river2Width  = 0;   // second river (phase 2+), 0 = not active
+let river2Width  = 0;
 
-let frame = 0;
+let frame   = 0;
 let waveOff = 0;
 let particles = [];
 let airCoins  = [];
 
 // ─────────────────────────────────────────────
+//  CLOUD WORLD STATE
+// ─────────────────────────────────────────────
+let cloudPlatforms      = [];
+let cloudZoneActive     = false;  // true while car is in the cloud zone
+let cloudBonusThisRun   = 0;      // coins earned from cloud bounces
+
+function generateCloudPlatforms() {
+  cloudPlatforms = [];
+  // 4 rows, each with one platform at a random x
+  const rows = [35, 100, 170, 245];
+  rows.forEach((ry, i) => {
+    const pw = 110 + Math.random() * 80;
+    cloudPlatforms.push({
+      x:      30 + Math.random() * (W - pw - 60),
+      y:      ry,
+      w:      pw,
+      h:      32,
+      phase:  Math.random() * Math.PI * 2,
+      bounced: false
+    });
+  });
+  cloudBonusThisRun = 0;
+}
+
+// ─────────────────────────────────────────────
+//  BACKGROUND PARTICLES (stars / sand / snow)
+// ─────────────────────────────────────────────
+let bgSprites = [];   // theme-specific background decorations
+
+function generateBgSprites() {
+  bgSprites = [];
+  if (level >= 21) {
+    // Stars + two small planets
+    for (let i = 0; i < 80; i++)
+      bgSprites.push({ type:'star', x:Math.random()*W, y:Math.random()*(GROUND_Y-30),
+                       r:0.5+Math.random()*2, twinkle:Math.random()*Math.PI*2 });
+    bgSprites.push({ type:'planet', x:180, y:55, r:28, c:'#7c3aed', c2:'#a855f7' });
+    bgSprites.push({ type:'planet', x:W-130, y:80, r:18, c:'#be185d', c2:'#ec4899' });
+  } else if (level >= 16) {
+    // Falling snowflakes
+    for (let i = 0; i < 55; i++)
+      bgSprites.push({ type:'snow', x:Math.random()*W, y:Math.random()*(GROUND_Y-10),
+                       r:2+Math.random()*3, speed:0.4+Math.random()*0.7 });
+  } else if (level >= 11) {
+    // Blowing sand particles
+    for (let i = 0; i < 40; i++)
+      bgSprites.push({ type:'sand', x:Math.random()*W, y:180+Math.random()*(GROUND_Y-200),
+                       r:1.5+Math.random()*2.5, speed:1+Math.random()*2 });
+  } else if (level >= 6) {
+    // Stars (night)
+    for (let i = 0; i < 100; i++)
+      bgSprites.push({ type:'star', x:Math.random()*W, y:Math.random()*(GROUND_Y-40),
+                       r:0.5+Math.random()*2, twinkle:Math.random()*Math.PI*2 });
+  }
+}
+
+// ─────────────────────────────────────────────
 //  CAR
 // ─────────────────────────────────────────────
 let car = {};
-let boosted  = false;
-let flipUsed = false;
+let boosted      = false;
+let flipUsed     = false;
 let flipCooldown = 0;
 
 function resetCar() {
@@ -284,12 +390,15 @@ function resetCar() {
     w: 58, h: 28,
     spinning: false, spinVel: 0
   };
-  boosted      = false;
-  flipUsed     = false;
-  flipCooldown = 0;
-  sessionCoins = 0;
-  airCoins     = spawnCoins();
-  particles    = [];
+  boosted          = false;
+  flipUsed         = false;
+  flipCooldown     = 0;
+  sessionCoins     = 0;
+  cloudZoneActive  = false;
+  cloudBonusThisRun = 0;
+  cloudPlatforms   = [];
+  airCoins         = spawnCoins();
+  particles        = [];
 }
 resetCar();
 
@@ -313,15 +422,14 @@ function spawnCoins() {
 }
 
 // ─────────────────────────────────────────────
-//  INPUT  (the bug fix: listeners are on window + canvas, not just canvas)
+//  INPUT
 // ─────────────────────────────────────────────
 const keys = {};
 
 window.addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
-  // Always prevent default for game keys (stops page scroll on arrows/space)
   if ([' ','enter','arrowleft','arrowright','arrowup','arrowdown'].includes(k)) e.preventDefault();
-  if (keys[k]) return;   // already held — ignore repeat for one-shot actions
+  if (keys[k]) return;
   keys[k] = true;
   if (k === ' ' || k === 'enter') { onJump(); }
   if (k === 'f')                  { onFlip();  }
@@ -329,7 +437,6 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 
-// Canvas click/touch → jump
 canvas.addEventListener('pointerdown', e => {
   e.preventDefault();
   if (state === 'airborne') { onFlip(); }
@@ -369,12 +476,13 @@ function onFlip() {
 //  GAME FLOW
 // ─────────────────────────────────────────────
 function startGame() {
-  level      = 1;
-  lives      = 3;
-  totalCoins = 0;
+  level       = 1;
+  lives       = 3;
+  totalCoins  = 0;
   riverWidth  = RIVER_BASE;
   river2Width = 0;
   Object.values(UPG).forEach(u => u.lv = 0);
+  generateBgSprites();
   resetCar();
   goState('driving');
 }
@@ -383,13 +491,11 @@ function launch() {
   if (state !== 'driving') return;
   const springMult = 1 + UPG.springs.lv * 0.28;
   const boostBonus = boosted ? (1.6 + UPG.turbo.lv * 0.5) : 0;
-  // Horizontal speed carries over from driving (player-controlled)
-  // Apply small launch boost so even moderate speed feels punchy
   car.vx = Math.max(car.vx, 1) * 1.35;
   car.vy = -(11 * springMult + boostBonus);
   car.angle = -0.22;
   goState('airborne');
-  document.getElementById('flipBtn').disabled = false;
+  document.getElementById('flipBtn').disabled  = false;
   document.getElementById('boostBtn').disabled = true;
 }
 
@@ -405,7 +511,7 @@ function goState(s) {
 
 function onLand(inRiver) {
   if (inRiver) {
-    totalCoins += sessionCoins;   // bank coins even on a failed attempt
+    totalCoins += sessionCoins;
     lives--;
     spawnParticles(car.x + car.w/2, GROUND_Y, '#1e90ff', 20);
     goState('gameover');
@@ -415,7 +521,6 @@ function onLand(inRiver) {
       setTimeout(() => goState('menu'), 3200);
     }
   } else {
-    // Success — reset lives for the next level
     lives = 3;
     if (flipUsed) sessionCoins += 3;
     car.vx  *= (0.28 - UPG.grip.lv * 0.04);
@@ -428,11 +533,11 @@ function onLand(inRiver) {
       riverWidth  = Math.min(RIVER_BASE + (level - 1) * RIVER_GROW, RIVER_MAX);
       river2Width = 0;
     } else {
-      // Phase 2 — double river, reset smaller and grow again
       const pl    = level - 20;
       riverWidth  = Math.min(75 + (pl - 1) * 10, 150);
       river2Width = Math.min(55 + (pl - 1) * 8,  120);
     }
+    generateBgSprites();  // update theme decorations for new level
     spawnParticles(car.x + car.w/2, car.y, '#4ade80', 14);
     goState('landed');
     setTimeout(() => openShop(), 900);
@@ -517,6 +622,7 @@ function update() {
   frame++;
   waveOff += 0.055;
   updateParticles();
+  updateBgSprites();
 
   if (state === 'driving') {
     const maxSpd = (3 + UPG.engine.lv * 0.5) * (boosted ? (1.35 + UPG.turbo.lv * 0.22) : 1);
@@ -525,23 +631,21 @@ function update() {
     } else if (keys['arrowleft'] || keys['a']) {
       car.vx = Math.max(car.vx - 0.15, 0);
     } else {
-      car.vx *= 0.90;   // coast to a stop when no key held
+      car.vx *= 0.90;
     }
     car.x += car.vx;
     if (car.x < 0) { car.x = 0; car.vx = 0; }
 
-    // Sit the car on the surface (road or ramp slope)
     const cx = car.x + car.w / 2;
     car.y = surfaceY(cx) - car.h;
 
-    // Tilt car to match ramp slope
+    const rh = getRampH();
     if (cx >= RAMP_X - 50 && cx < RAMP_X) {
-      car.angle = Math.atan2(-RAMP_H, 50) * 0.85;
+      car.angle = Math.atan2(-rh, 50) * 0.85;
     } else {
       car.angle = 0;
     }
 
-    // Auto-launch when front wheel goes off the ramp top into the river
     if (car.x + car.w >= RAMP_X + 18) launch();
   }
 
@@ -549,6 +653,42 @@ function update() {
     car.vy += GRAVITY;
     car.x  += car.vx;
     car.y  += car.vy;
+
+    // ── Cloud World check ──────────────────────────────────────
+    const inCloudZone = car.y < CLOUD_ZONE_Y;
+    if (inCloudZone && !cloudZoneActive) {
+      // Just entered cloud world — generate platforms
+      cloudZoneActive = true;
+      generateCloudPlatforms();
+    }
+    if (!inCloudZone && cloudZoneActive) {
+      cloudZoneActive = false;   // exited cloud zone
+    }
+
+    if (inCloudZone) {
+      // Reduce gravity a bit while floating up there
+      car.vy -= (GRAVITY - CLOUD_GRAVITY) * 0.5;
+
+      // Check bounces off cloud platforms
+      cloudPlatforms.forEach(cp => {
+        if (cp.bounced) return;
+        const cpY = cp.y + Math.sin(frame * 0.04 + cp.phase) * 7;
+        const carBottom = car.y + car.h;
+        if (car.x + car.w > cp.x + 10 && car.x < cp.x + cp.w - 10 &&
+            carBottom >= cpY && carBottom <= cpY + 22 && car.vy > 0) {
+          cp.bounced = true;
+          const bonus = 5 + Math.floor(UPG.magnet.lv * 1.5);
+          cloudBonusThisRun += bonus;
+          sessionCoins      += bonus;
+          car.vy  = -(5.5 + Math.random() * 2.5);
+          car.y   = cpY - car.h;
+          // White + sky blue burst
+          spawnParticles(car.x + car.w/2, cpY, '#ffffff', 14);
+          spawnParticles(car.x + car.w/2, cpY, '#7dd3fc', 8);
+        }
+      });
+    }
+    // ── End cloud world ────────────────────────────────────────
 
     if (car.spinning) {
       car.angle  += car.spinVel;
@@ -570,7 +710,7 @@ function update() {
       }
     });
 
-    // Land detection — check against right ramp surface or ground
+    // Land detection
     const lcx      = car.x + car.w / 2;
     const landSurf = rightSurfaceY(lcx);
     if (car.y + car.h >= landSurf) {
@@ -594,76 +734,159 @@ function update() {
 }
 
 // ─────────────────────────────────────────────
+//  BG SPRITE UPDATES  (snow fall, sand drift, star twinkle)
+// ─────────────────────────────────────────────
+function updateBgSprites() {
+  bgSprites.forEach(s => {
+    if (s.type === 'snow') {
+      s.y += s.speed;
+      s.x += Math.sin(frame * 0.02 + s.phase) * 0.4;
+      if (s.y > GROUND_Y) { s.y = -8; s.x = Math.random() * W; }
+    }
+    if (s.type === 'sand') {
+      s.x += s.speed;
+      if (s.x > W + 10) { s.x = -10; s.y = 180 + Math.random() * (GROUND_Y - 200); }
+    }
+    if (s.type === 'star') {
+      s.twinkle += 0.04;
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
 //  DRAW
 // ─────────────────────────────────────────────
 function drawBG() {
+  const t = getTheme();
+
   // Sky gradient
   const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-  sky.addColorStop(0, '#1a3a5c');
-  sky.addColorStop(1, '#6eb5d8');
+  sky.addColorStop(0, t.sky1);
+  sky.addColorStop(1, t.sky2);
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, H);
 
-  // Sun
-  ctx.fillStyle = '#ffe566';
-  ctx.beginPath(); ctx.arc(W - 90, 62, 38, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'rgba(255,229,102,0.18)';
-  ctx.beginPath(); ctx.arc(W - 90, 62, 60, 0, Math.PI*2); ctx.fill();
+  // Sun (or moon for night)
+  if (t.sun) {
+    ctx.fillStyle = t.sun;
+    ctx.beginPath(); ctx.arc(W - 90, 62, 38, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = `${t.sun}30`;
+    ctx.beginPath(); ctx.arc(W - 90, 62, 60, 0, Math.PI*2); ctx.fill();
+  } else if (level >= 6 && level < 11) {
+    // Moon
+    ctx.fillStyle = '#d1d5db';
+    ctx.beginPath(); ctx.arc(W - 90, 62, 30, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = t.sky1;
+    ctx.beginPath(); ctx.arc(W - 80, 56, 26, 0, Math.PI*2); ctx.fill();
+  }
 
-  // Clouds
-  drawCloud(100, 55, 1.0);
-  drawCloud(360, 38, 1.3);
-  drawCloud(620, 70, 0.75);
+  // Background decorations (stars, snow, sand, planets)
+  drawBgSprites();
+
+  // Clouds (only for day/ice themes)
+  if (level < 6 || (level >= 16 && level < 21)) {
+    const cloudAlpha = level >= 16 ? 0.9 : 0.82;
+    drawCloud(100, 55, 1.0, cloudAlpha);
+    drawCloud(360, 38, 1.3, cloudAlpha);
+    drawCloud(620, 70, 0.75, cloudAlpha);
+  }
 }
 
-function drawCloud(x, y, s) {
-  ctx.fillStyle = 'rgba(255,255,255,0.82)';
+function drawBgSprites() {
+  bgSprites.forEach(s => {
+    if (s.type === 'star') {
+      const a = 0.5 + Math.sin(s.twinkle) * 0.4;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    if (s.type === 'planet') {
+      ctx.fillStyle = s.c;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = s.c2;
+      ctx.globalAlpha = 0.4;
+      ctx.beginPath(); ctx.arc(s.x - s.r*0.25, s.y - s.r*0.25, s.r * 0.6, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+      // Ring
+      ctx.strokeStyle = s.c2;
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.5;
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y + s.r*0.1, s.r*1.5, s.r*0.35, -0.3, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    if (s.type === 'snow') {
+      ctx.fillStyle = 'rgba(220,240,255,0.85)';
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+    }
+    if (s.type === 'sand') {
+      ctx.fillStyle = 'rgba(200,160,80,0.55)';
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+    }
+  });
+}
+
+function drawCloud(x, y, s, alpha) {
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = level >= 16 ? 'rgba(240,248,255,0.9)' : 'rgba(255,255,255,0.82)';
   const r = s * 36;
   ctx.beginPath();
-  ctx.arc(x,       y,       r * 0.62, 0, Math.PI*2);
-  ctx.arc(x + r*0.5, y - r*0.18, r * 0.5, 0, Math.PI*2);
-  ctx.arc(x + r,   y,       r * 0.55, 0, Math.PI*2);
+  ctx.arc(x,         y,         r * 0.62, 0, Math.PI*2);
+  ctx.arc(x + r*0.5, y - r*0.18, r * 0.5,  0, Math.PI*2);
+  ctx.arc(x + r,     y,         r * 0.55, 0, Math.PI*2);
   ctx.fill();
+  ctx.globalAlpha = 1;
 }
 
 function drawGround() {
+  const t   = getTheme();
+  const rh  = getRampH();
   const rl  = RIVER_START;
   const rr1 = rl + riverWidth;
   const rr  = getRightBank();
 
-  // Left grass
-  ctx.fillStyle = '#3d6b4f';
+  // Left ground fill
+  ctx.fillStyle = t.grass;
   ctx.fillRect(0, GROUND_Y, rl, H - GROUND_Y);
 
   // Road surface
-  ctx.fillStyle = '#4a4a4a';
+  ctx.fillStyle = t.road;
   ctx.fillRect(0, GROUND_Y, rl, 10);
 
   // Road dashes
-  ctx.fillStyle = '#e2e8f0';
+  ctx.fillStyle = t.roadLine;
   for (let rx = 20; rx < rl - 30; rx += 70) {
     ctx.fillRect(rx, GROUND_Y + 3, 42, 4);
   }
 
   // Ramp
-  ctx.fillStyle = '#5a5a5a';
+  ctx.fillStyle = level >= 6 ? '#4a4a6a' : '#5a5a5a';
   ctx.beginPath();
   ctx.moveTo(RAMP_X - 50, GROUND_Y);
-  ctx.lineTo(RAMP_X,      GROUND_Y - RAMP_H);
-  ctx.lineTo(RAMP_X + 18, GROUND_Y - RAMP_H);
+  ctx.lineTo(RAMP_X,      GROUND_Y - rh);
+  ctx.lineTo(RAMP_X + 18, GROUND_Y - rh);
   ctx.lineTo(RAMP_X + 18, GROUND_Y);
   ctx.closePath();
   ctx.fill();
   // Ramp edge highlight
-  ctx.strokeStyle = '#888';
+  ctx.strokeStyle = level >= 21 ? '#a855f7' : '#888';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(RAMP_X - 50, GROUND_Y);
-  ctx.lineTo(RAMP_X, GROUND_Y - RAMP_H);
+  ctx.lineTo(RAMP_X, GROUND_Y - rh);
   ctx.stroke();
+  // Ramp height indicator (shows that it's taller at high levels)
+  if (rh > 50) {
+    ctx.fillStyle = 'rgba(255,120,50,0.7)';
+    ctx.font = `bold ${Math.min(10, 7 + Math.floor(rh/20))}px Segoe UI`;
+    ctx.textAlign = 'center';
+    ctx.fillText(`▲ ${rh}`, RAMP_X - 8, GROUND_Y - rh - 6);
+  }
 
   // ── River 1 ──
-  ctx.fillStyle = '#1565c0';
+  ctx.fillStyle = t.river;
   ctx.fillRect(rl, GROUND_Y, riverWidth, H - GROUND_Y);
 
   const drawWaves = (wl, wr) => {
@@ -681,7 +904,7 @@ function drawGround() {
   };
   drawWaves(rl, rr1);
 
-  ctx.strokeStyle = '#0d47a1'; ctx.lineWidth = 3;
+  ctx.strokeStyle = t.riverDark; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(rl,  GROUND_Y); ctx.lineTo(rl,  H); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(rr1, GROUND_Y); ctx.lineTo(rr1, H); ctx.stroke();
 
@@ -690,50 +913,45 @@ function drawGround() {
     const il = rr1, ir = rr1 + ISLAND_W;
     const r2l = ir, r2r = rr;
 
-    // Island — rocky sandbar, can't land here
     ctx.fillStyle = '#b45309';
     ctx.fillRect(il, GROUND_Y, ISLAND_W, H - GROUND_Y);
     ctx.fillStyle = '#92400e';
     ctx.fillRect(il, GROUND_Y, ISLAND_W, 6);
-    // Rocks
     ctx.fillStyle = '#78350f';
     for (let rx = il + 6; rx < ir - 6; rx += 14) {
       ctx.beginPath(); ctx.ellipse(rx, GROUND_Y + 14, 5, 4, 0, 0, Math.PI*2); ctx.fill();
     }
-    // Island label
     ctx.fillStyle = 'rgba(255,200,100,0.8)';
     ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
     ctx.fillText('ROCKS', il + ISLAND_W/2, GROUND_Y - 8);
 
-    // River 2
-    ctx.fillStyle = '#1565c0';
+    ctx.fillStyle = t.river;
     ctx.fillRect(r2l, GROUND_Y, river2Width, H - GROUND_Y);
     drawWaves(r2l, r2r);
-    ctx.strokeStyle = '#0d47a1'; ctx.lineWidth = 3;
+    ctx.strokeStyle = t.riverDark; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(r2l, GROUND_Y); ctx.lineTo(r2l, H); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(r2r, GROUND_Y); ctx.lineTo(r2r, H); ctx.stroke();
   }
 
-  // Right grass + landing strip
-  ctx.fillStyle = '#3d6b4f';
+  // Right ground fill
+  ctx.fillStyle = t.grass;
   ctx.fillRect(rr, GROUND_Y, W - rr, H - GROUND_Y);
   ctx.fillStyle = '#fde047';
   ctx.fillRect(rr, GROUND_Y, W - rr, 7);
 
   // Right landing ramp (slopes down from river edge)
-  const rampTop = GROUND_Y - RAMP_H;
-  ctx.fillStyle = '#5a5a5a';
+  ctx.fillStyle = level >= 6 ? '#4a4a6a' : '#5a5a5a';
   ctx.beginPath();
   ctx.moveTo(rr,      GROUND_Y);
-  ctx.lineTo(rr,      rampTop);
-  ctx.lineTo(rr + 18, rampTop);
+  ctx.lineTo(rr,      GROUND_Y - rh);
+  ctx.lineTo(rr + 18, GROUND_Y - rh);
   ctx.lineTo(rr + 68, GROUND_Y);
   ctx.closePath();
   ctx.fill();
-  ctx.strokeStyle = '#888';
+  ctx.strokeStyle = level >= 21 ? '#a855f7' : '#888';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(rr + 18, rampTop);
+  ctx.moveTo(rr + 18, GROUND_Y - rh);
   ctx.lineTo(rr + 68, GROUND_Y);
   ctx.stroke();
 
@@ -742,15 +960,48 @@ function drawGround() {
     ctx.fillStyle = 'rgba(253,224,71,0.7)';
     ctx.font = 'bold 12px Segoe UI';
     ctx.textAlign = 'center';
-    ctx.fillText('LAND HERE', rr + (W - rr) / 2, GROUND_Y - 10);
+    ctx.fillText('LAND HERE', rr + (W - rr) / 2, GROUND_Y - rh - 8);
   }
 
-  // Trees (kept clear of ramps)
-  drawTree(30, GROUND_Y);
-  drawTree(80, GROUND_Y - 12);
-  drawTree(180, GROUND_Y);
-  if (W - rr > 90)  drawTree(rr + 90,  GROUND_Y);
-  if (W - rr > 160) drawTree(rr + 160, GROUND_Y - 8);
+  // Theme-specific ground decorations
+  drawGroundDecorations(t, rr);
+}
+
+function drawGroundDecorations(t, rr) {
+  if (level >= 21) {
+    // Alien spires instead of trees
+    drawSpire(30,  GROUND_Y);
+    drawSpire(80,  GROUND_Y - 12);
+    drawSpire(175, GROUND_Y);
+    if (W - rr > 90)  drawSpire(rr + 90,  GROUND_Y);
+    if (W - rr > 160) drawSpire(rr + 160, GROUND_Y - 8);
+  } else if (level >= 16) {
+    // Snowy trees
+    drawSnowTree(30, GROUND_Y);
+    drawSnowTree(80, GROUND_Y - 12);
+    drawSnowTree(180, GROUND_Y);
+    if (W - rr > 90)  drawSnowTree(rr + 90,  GROUND_Y);
+    if (W - rr > 160) drawSnowTree(rr + 160, GROUND_Y - 8);
+  } else if (level >= 11) {
+    // Cacti
+    drawCactus(40, GROUND_Y);
+    drawCactus(100, GROUND_Y);
+    drawCactus(190, GROUND_Y);
+    if (W - rr > 90)  drawCactus(rr + 90,  GROUND_Y);
+    if (W - rr > 160) drawCactus(rr + 160, GROUND_Y);
+  } else if (level >= 6) {
+    // Night lampposts
+    drawLamppost(30,  GROUND_Y);
+    drawLamppost(180, GROUND_Y);
+    if (W - rr > 90)  drawLamppost(rr + 90,  GROUND_Y);
+    if (W - rr > 150) drawLamppost(rr + 150, GROUND_Y);
+  } else {
+    drawTree(30, GROUND_Y);
+    drawTree(80, GROUND_Y - 12);
+    drawTree(180, GROUND_Y);
+    if (W - rr > 90)  drawTree(rr + 90,  GROUND_Y);
+    if (W - rr > 160) drawTree(rr + 160, GROUND_Y - 8);
+  }
 }
 
 function drawTree(x, y) {
@@ -764,6 +1015,73 @@ function drawTree(x, y) {
   ctx.beginPath();
   ctx.moveTo(x, y - 76); ctx.lineTo(x - 14, y - 44); ctx.lineTo(x + 14, y - 44);
   ctx.closePath(); ctx.fill();
+}
+
+function drawSnowTree(x, y) {
+  ctx.fillStyle = '#5a3a1e';
+  ctx.fillRect(x - 4, y - 22, 8, 22);
+  ctx.fillStyle = '#2a5a3a';
+  ctx.beginPath();
+  ctx.moveTo(x, y - 62); ctx.lineTo(x - 20, y - 22); ctx.lineTo(x + 20, y - 22);
+  ctx.closePath(); ctx.fill();
+  // Snow cap
+  ctx.fillStyle = 'rgba(220,240,255,0.9)';
+  ctx.beginPath();
+  ctx.moveTo(x, y - 62); ctx.lineTo(x - 10, y - 48); ctx.lineTo(x + 10, y - 48);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#1a4a2a';
+  ctx.beginPath();
+  ctx.moveTo(x, y - 78); ctx.lineTo(x - 14, y - 46); ctx.lineTo(x + 14, y - 46);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(220,240,255,0.9)';
+  ctx.beginPath();
+  ctx.moveTo(x, y - 78); ctx.lineTo(x - 7, y - 66); ctx.lineTo(x + 7, y - 66);
+  ctx.closePath(); ctx.fill();
+}
+
+function drawCactus(x, y) {
+  ctx.fillStyle = '#2d6a2a';
+  ctx.fillRect(x - 5, y - 55, 10, 55);
+  // Arms
+  ctx.fillRect(x - 20, y - 40, 15, 8);
+  ctx.fillRect(x - 20, y - 55, 8, 18);
+  ctx.fillRect(x + 5,  y - 35, 15, 8);
+  ctx.fillRect(x + 12, y - 50, 8, 18);
+  ctx.fillStyle = '#3a8a36';
+  ctx.fillRect(x - 4, y - 53, 8, 51);
+}
+
+function drawLamppost(x, y) {
+  ctx.fillStyle = '#4a4a6a';
+  ctx.fillRect(x - 3, y - 70, 6, 70);
+  // Lamp arm
+  ctx.fillRect(x - 3, y - 70, 22, 5);
+  // Lamp glow
+  ctx.fillStyle = 'rgba(255,220,80,0.9)';
+  ctx.beginPath(); ctx.arc(x + 19, y - 68, 8, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,220,80,0.15)';
+  ctx.beginPath(); ctx.arc(x + 19, y - 68, 22, 0, Math.PI*2); ctx.fill();
+}
+
+function drawSpire(x, y) {
+  // Alien crystal spire
+  const gradient = ctx.createLinearGradient(x, y, x, y - 70);
+  gradient.addColorStop(0, '#5b21b6');
+  gradient.addColorStop(1, '#c084fc');
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.moveTo(x, y - 70);
+  ctx.lineTo(x - 10, y - 10);
+  ctx.lineTo(x + 10, y - 10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = 'rgba(192,132,252,0.3)';
+  ctx.beginPath();
+  ctx.moveTo(x, y - 70);
+  ctx.lineTo(x + 3, y - 10);
+  ctx.lineTo(x + 10, y - 10);
+  ctx.closePath();
+  ctx.fill();
 }
 
 function drawCar() {
@@ -842,6 +1160,94 @@ function drawWheel(ox, oy) {
   ctx.beginPath(); ctx.arc(ox, oy,  5, 0, Math.PI*2); ctx.fill();
 }
 
+// ─────────────────────────────────────────────
+//  CLOUD WORLD DRAW
+// ─────────────────────────────────────────────
+function drawCloudWorld() {
+  if (!state === 'airborne' && !cloudZoneActive) return;
+  if (car.y > CLOUD_ZONE_Y + 160) return;  // too far below to show
+
+  // Fade alpha based on how high the car is
+  const fadeTop    = CLOUD_ZONE_Y - 20;
+  const fadeBottom = CLOUD_ZONE_Y + 160;
+  const alpha = Math.max(0, Math.min(1, 1 - (car.y - fadeTop) / (fadeBottom - fadeTop)));
+  if (alpha <= 0) return;
+
+  ctx.globalAlpha = alpha;
+
+  // Bright sky overlay
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#c7f2ff');
+  sky.addColorStop(0.6, '#89d8f5');
+  sky.addColorStop(1, '#55b8d4');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+
+  // Rainbow arc
+  drawRainbow(alpha);
+
+  // Cloud platforms
+  cloudPlatforms.forEach(cp => {
+    const floatY = cp.y + Math.sin(frame * 0.04 + cp.phase) * 7;
+    drawCloudPlatform(cp.x, floatY, cp.w, cp.h, cp.bounced);
+  });
+
+  // Cloud world label
+  if (alpha > 0.6) {
+    ctx.fillStyle = 'rgba(30,100,160,0.9)';
+    ctx.font = 'bold 26px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('☁️  CLOUD WORLD  ☁️', W/2, 10);
+    if (cloudBonusThisRun > 0) {
+      ctx.fillStyle = '#ffd700';
+      ctx.font = 'bold 18px Segoe UI';
+      ctx.fillText(`+${cloudBonusThisRun} cloud coins!`, W/2, 44);
+    }
+  }
+
+  ctx.globalAlpha = 1;
+}
+
+function drawRainbow(alpha) {
+  const cx = W * 0.45, cy = H * 0.9, r0 = 200;
+  const colors = ['#ff0000','#ff7700','#ffdd00','#00cc44','#1177ff','#8833ee'];
+  colors.forEach((c, i) => {
+    const r = r0 + i * 14;
+    ctx.strokeStyle = c;
+    ctx.lineWidth = 11;
+    ctx.globalAlpha = alpha * 0.3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, Math.PI, 0);
+    ctx.stroke();
+  });
+  ctx.globalAlpha = alpha;
+}
+
+function drawCloudPlatform(x, y, w, h, used) {
+  const r = h * 0.9;
+  ctx.fillStyle = used ? 'rgba(180,210,240,0.7)' : 'rgba(255,255,255,0.96)';
+  ctx.beginPath();
+  ctx.arc(x + r,        y + h * 0.3,  r,        0, Math.PI*2);
+  ctx.arc(x + w * 0.35, y + h * 0.1,  r * 0.88, 0, Math.PI*2);
+  ctx.arc(x + w * 0.65, y + h * 0.15, r * 0.82, 0, Math.PI*2);
+  ctx.arc(x + w - r,    y + h * 0.3,  r * 0.78, 0, Math.PI*2);
+  ctx.fill();
+  // Flat bottom
+  ctx.fillRect(x + r * 0.5, y + h * 0.28, w - r, h * 0.72);
+  // Bounce indicator
+  if (!used) {
+    ctx.fillStyle = 'rgba(100,200,255,0.4)';
+    ctx.fillRect(x + r * 0.5, y + h * 0.28, w - r, h * 0.18);
+    // Coin icons on platform
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 11px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('💰', x + w/2, y + h * 0.55);
+  }
+}
+
 function drawCoins() {
   airCoins.forEach(c => {
     if (c.collected) return;
@@ -876,6 +1282,7 @@ function drawParticles() {
 
 function drawHUD() {
   if (state === 'menu' || state === 'gameover' || state === 'shop') return;
+  const t = getTheme();
   ctx.textBaseline = 'top';
 
   // Level badge
@@ -899,6 +1306,30 @@ function drawHUD() {
   ctx.font = 'bold 20px Segoe UI';
   ctx.textAlign = 'right';
   ctx.fillText('❤️'.repeat(lives) + '🖤'.repeat(Math.max(0, 3 - lives)), W - 14, 32);
+
+  // Ramp height badge (shows when ramp is notably tall)
+  if (getRampH() > 60) {
+    ctx.fillStyle = 'rgba(0,0,0,0.52)';
+    ctx.beginPath(); ctx.roundRect(315, 10, 140, 38, 8); ctx.fill();
+    ctx.fillStyle = '#f97316';
+    ctx.font = 'bold 14px Segoe UI';
+    ctx.textAlign = 'left';
+    ctx.fillText(`🚀 Ramp Lv ${Math.floor((getRampH()-38)/6)+1}`, 328, 20);
+  }
+
+  // Cloud world hint (show when near cloud zone while airborne)
+  if (state === 'airborne' && car.y < CLOUD_ZONE_Y + 200 && !cloudZoneActive) {
+    const dist = car.y - CLOUD_ZONE_Y;
+    if (dist > 0 && dist < 160) {
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 14px Segoe UI';
+      ctx.fillStyle = '#7dd3fc';
+      const pulse = 0.6 + Math.sin(frame * 0.2) * 0.4;
+      ctx.globalAlpha = pulse;
+      ctx.fillText('☁️  Cloud World above — jump higher!', W/2, 56);
+      ctx.globalAlpha = 1;
+    }
+  }
 
   // Airborne hints
   if (state === 'airborne') {
@@ -930,7 +1361,6 @@ function drawMenu() {
   ctx.fillStyle = 'rgba(0,0,0,0.58)';
   ctx.fillRect(0, 0, W, H);
 
-  // Card
   ctx.fillStyle = 'rgba(255,255,255,0.08)';
   ctx.beginPath(); ctx.roundRect(W/2 - 220, H/2 - 120, 440, 240, 18); ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.15)';
@@ -940,7 +1370,6 @@ function drawMenu() {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  // Title
   ctx.fillStyle = '#ffd700';
   ctx.font = 'bold 54px Segoe UI';
   ctx.fillText('🚗 CarJumper', W/2, H/2 - 52);
@@ -949,12 +1378,15 @@ function drawMenu() {
   ctx.font = '17px Segoe UI';
   ctx.fillText('Jump the river · Collect coins · Upgrade your car!', W/2, H/2 + 5);
 
-  // Pulsing start prompt
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.font = '13px Segoe UI';
+  ctx.fillText('Boost high enough to enter ☁️ Cloud World!', W/2, H/2 + 36);
+
   const pulse = 0.65 + Math.sin(frame * 0.055) * 0.35;
   ctx.globalAlpha = pulse;
   ctx.fillStyle = '#4ade80';
   ctx.font = 'bold 21px Segoe UI';
-  ctx.fillText('Click here or press Space to Start', W/2, H/2 + 68);
+  ctx.fillText('Click here or press Space to Start', W/2, H/2 + 78);
   ctx.globalAlpha = 1;
 }
 
@@ -998,16 +1430,27 @@ function drawLanded() {
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#4ade80';
   ctx.font = 'bold 34px Segoe UI';
-  ctx.fillText(`✅ Level ${level - 1} Complete!`, W/2, H/2 - 22);
+  ctx.fillText(`✅ Level ${level - 1} Complete!`, W/2, H/2 - 30);
 
   ctx.fillStyle = '#ffd700';
   ctx.font = '20px Segoe UI';
-  ctx.fillText(`+${sessionCoins} coins${flipUsed ? ' (includes flip bonus!)' : ''}`, W/2, H/2 + 24);
+  ctx.fillText(`+${sessionCoins} coins${flipUsed ? ' (includes flip bonus!)' : ''}`, W/2, H/2 + 14);
+
+  // Stadium transition name
+  const t = getTheme();
+  if (t.name) {
+    const pulse = 0.75 + Math.sin(frame * 0.12) * 0.25;
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = t.nameColor;
+    ctx.font = 'bold 22px Segoe UI';
+    ctx.fillText(`Next: ${t.name}`, W/2, H/2 + 56);
+    ctx.globalAlpha = 1;
+  }
 
   if (level === 21) {
     ctx.fillStyle = '#f97316';
     ctx.font = 'bold 17px Segoe UI';
-    ctx.fillText('⚠️ Double River challenge starts next level!', W/2, H/2 + 60);
+    ctx.fillText('⚠️ Double River challenge starts next level!', W/2, H/2 + 86);
   }
 }
 
@@ -1023,6 +1466,8 @@ function loop() {
 
   if (state !== 'menu') {
     drawCoins();
+    // Draw cloud world BEHIND the car
+    if (state === 'airborne') drawCloudWorld();
     drawCar();
     drawParticles();
   }
@@ -1034,7 +1479,7 @@ function loop() {
   if (state === 'landed')   drawLanded();
 }
 
-// Start loop — restart if tab regains visibility (handles background-tab rAF throttling)
+// Start loop — restart if tab regains visibility
 let _loopRunning = false;
 function startLoop() {
   if (_loopRunning) return;
