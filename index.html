@@ -207,10 +207,11 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 const GROUND_Y    = 370;
 const GRAVITY     = 0.46;
 const RAMP_H      = 38;
-const RIVER_START = 450;   // left bank x
+const RIVER_START = 350;   // left bank x
 const RAMP_X      = RIVER_START - 18; // ramp peak flush with river left bank
 const RIVER_BASE  = 100;   // starting width
-const RIVER_GROW  = 24;    // pixels wider per level
+const RIVER_GROW  = 18;    // pixels wider per level
+const RIVER_MAX   = W - RIVER_START - 110; // right bank never goes off-screen
 
 // Returns the surface y at car-centre x (road, ramp slope, ramp top)
 function surfaceY(cx) {
@@ -235,12 +236,12 @@ function rightSurfaceY(cx) {
 //  UPGRADES
 // ─────────────────────────────────────────────
 const UPG = {
-  engine:     { lv:0, max:3, costs:[10,28,55], name:'Engine',      emoji:'🔧', desc:'More launch speed' },
-  springs:    { lv:0, max:3, costs:[10,28,55], name:'Springs',     emoji:'🌀', desc:'Jump higher'       },
-  flipCharge: { lv:0, max:3, costs:[15,35,70], name:'Flip Charge', emoji:'⚡', desc:'Faster flip cool'  },
-  turbo:      { lv:0, max:3, costs:[15,35,70], name:'Turbo',       emoji:'🚀', desc:'Boost gives more'  },
-  grip:       { lv:0, max:3, costs:[20,45,85], name:'Grip',        emoji:'🏎️', desc:'Cleaner landings'  },
-  magnet:     { lv:0, max:3, costs:[20,45,85], name:'Coin Magnet', emoji:'💰', desc:'Bigger coin range' }
+  engine:     { lv:0, max:3, costs:[6,18,38],  name:'Engine',      emoji:'🔧', desc:'More launch speed' },
+  springs:    { lv:0, max:3, costs:[6,18,38],  name:'Springs',     emoji:'🌀', desc:'Jump higher'       },
+  flipCharge: { lv:0, max:3, costs:[8,22,45],  name:'Flip Charge', emoji:'⚡', desc:'Faster flip cool'  },
+  turbo:      { lv:0, max:3, costs:[8,22,45],  name:'Turbo',       emoji:'🚀', desc:'Boost gives more'  },
+  grip:       { lv:0, max:3, costs:[10,28,55], name:'Grip',        emoji:'🏎️', desc:'Cleaner landings'  },
+  magnet:     { lv:0, max:3, costs:[10,28,55], name:'Coin Magnet', emoji:'💰', desc:'Bigger coin range' }
 };
 
 // ─────────────────────────────────────────────
@@ -413,7 +414,7 @@ function onLand(inRiver) {
     car.angle = 0;
     totalCoins += sessionCoins;
     level++;
-    riverWidth = RIVER_BASE + (level - 1) * RIVER_GROW;
+    riverWidth = Math.min(RIVER_BASE + (level - 1) * RIVER_GROW, RIVER_MAX);
     spawnParticles(car.x + car.w/2, car.y, '#4ade80', 14);
     goState('landed');
     setTimeout(() => openShop(), 900);
