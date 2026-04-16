@@ -206,11 +206,22 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 // ─────────────────────────────────────────────
 const GROUND_Y    = 370;
 const GRAVITY     = 0.46;
-const RAMP_X      = 380;   // edge of ramp where car launches from
 const RAMP_H      = 38;
 const RIVER_START = 450;   // left bank x
+const RAMP_X      = RIVER_START - 18; // ramp peak flush with river left bank
 const RIVER_BASE  = 100;   // starting width
 const RIVER_GROW  = 24;    // pixels wider per level
+
+// Returns the surface y at car-centre x (road, ramp slope, ramp top)
+function surfaceY(cx) {
+  if (cx >= RAMP_X - 50 && cx < RAMP_X) {
+    return GROUND_Y - ((cx - (RAMP_X - 50)) / 50) * RAMP_H;
+  }
+  if (cx >= RAMP_X && cx <= RAMP_X + 18) {
+    return GROUND_Y - RAMP_H;
+  }
+  return GROUND_Y;
+}
 
 // ─────────────────────────────────────────────
 //  UPGRADES
@@ -481,10 +492,21 @@ function update() {
       car.vx *= 0.90;   // coast to a stop when no key held
     }
     car.x += car.vx;
-    car.y  = GROUND_Y - car.h;
     if (car.x < 0) { car.x = 0; car.vx = 0; }
-    // Drove into the river without jumping = splash
-    if (car.x + car.w / 2 >= RIVER_START) onLand(true);
+
+    // Sit the car on the surface (road or ramp slope)
+    const cx = car.x + car.w / 2;
+    car.y = surfaceY(cx) - car.h;
+
+    // Tilt car to match ramp slope
+    if (cx >= RAMP_X - 50 && cx < RAMP_X) {
+      car.angle = Math.atan2(-RAMP_H, 50) * 0.85;
+    } else {
+      car.angle = 0;
+    }
+
+    // Auto-launch when front wheel goes off the ramp top into the river
+    if (car.x + car.w >= RAMP_X + 18) launch();
   }
 
   if (state === 'airborne') {
