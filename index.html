@@ -30,7 +30,6 @@ canvas {
   box-shadow: 0 24px 80px rgba(0,0,0,0.7);
 }
 
-/* Buttons */
 #buttons {
   position: absolute;
   bottom: 16px;
@@ -57,7 +56,6 @@ canvas {
 #boostBtn { background: linear-gradient(135deg,#ff6b35,#e63946); color: #fff; }
 #flipBtn  { background: linear-gradient(135deg,#a855f7,#7c3aed); color: #fff; }
 
-/* Shop overlay */
 #shopOverlay {
   position: absolute;
   inset: 0;
@@ -69,27 +67,10 @@ canvas {
   border-radius: 14px;
   padding: 20px;
 }
-
-#shopOverlay h2 {
-  color: #ffd700;
-  font-size: 26px;
-  margin-bottom: 4px;
-}
-
-#shopMeta {
-  color: #94a3b8;
-  font-size: 14px;
-  margin-bottom: 16px;
-}
-
-#shopCoins {
-  color: #ffd700;
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 18px;
-}
-
-#shopGrid {
+#shopOverlay h2 { color: #ffd700; font-size: 26px; margin-bottom: 4px; }
+#shopMeta  { color: #94a3b8; font-size: 14px; margin-bottom: 16px; }
+#shopCoins { color: #ffd700; font-size: 20px; font-weight: 700; margin-bottom: 18px; }
+#shopGrid  {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
@@ -97,7 +78,6 @@ canvas {
   width: 100%;
   max-width: 540px;
 }
-
 .shopItem {
   background: #1e293b;
   border: 2px solid #334155;
@@ -107,13 +87,9 @@ canvas {
   cursor: pointer;
   transition: border-color 0.15s, transform 0.1s;
 }
-.shopItem:hover:not(.maxed):not(.cantAfford) {
-  border-color: #60a5fa;
-  transform: translateY(-2px);
-}
+.shopItem:hover:not(.maxed):not(.cantAfford) { border-color: #60a5fa; transform: translateY(-2px); }
 .shopItem.maxed    { border-color: #ffd700; cursor: default; }
 .shopItem.cantAfford { opacity: 0.45; cursor: default; }
-
 .shopItem .sEmoji { font-size: 26px; }
 .shopItem .sName  { color: #fff; font-weight: 700; font-size: 13px; margin: 4px 0 2px; }
 .shopItem .sDesc  { color: #64748b; font-size: 11px; }
@@ -125,30 +101,22 @@ canvas {
 #continueBtn {
   padding: 13px 48px;
   background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 17px;
-  font-weight: 700;
-  cursor: pointer;
+  color: #fff; border: none; border-radius: 10px;
+  font-size: 17px; font-weight: 700; cursor: pointer;
   box-shadow: 0 4px 16px rgba(34,197,94,0.4);
-  transition: transform 0.1s, filter 0.1s;
-  letter-spacing: 0.5px;
+  transition: transform 0.1s, filter 0.1s; letter-spacing: 0.5px;
 }
 #continueBtn:hover { filter: brightness(1.1); transform: translateY(-1px); }
 #continueBtn:active { transform: scale(0.96); }
 </style>
 </head>
 <body>
-
 <div id="gameWrapper">
   <canvas id="gameCanvas"></canvas>
-
   <div id="buttons">
     <button class="btn" id="boostBtn">🚀 Boost  (B)</button>
     <button class="btn" id="flipBtn">🌀 Flip  (F)</button>
   </div>
-
   <div id="shopOverlay">
     <h2>🏪 Upgrade Shop</h2>
     <div id="shopMeta"></div>
@@ -168,36 +136,25 @@ const wrapper = document.getElementById('gameWrapper');
 const W = 860, H = 490;
 
 function resize() {
-  const mw = window.innerWidth  - 16;
-  const mh = window.innerHeight - 16;
+  const mw = window.innerWidth - 16, mh = window.innerHeight - 16;
   let w = mw, h = w * H / W;
   if (h > mh) { h = mh; w = h * W / H; }
-  canvas.style.width  = w + 'px';
-  canvas.style.height = h + 'px';
-  wrapper.style.width  = w + 'px';
-  wrapper.style.height = h + 'px';
+  canvas.style.width  = w + 'px'; canvas.style.height = h + 'px';
+  wrapper.style.width = w + 'px'; wrapper.style.height = h + 'px';
 }
-canvas.width  = W;
-canvas.height = H;
+canvas.width = W; canvas.height = H;
 resize();
 window.addEventListener('resize', resize);
 
-// roundRect polyfill for older browsers
 if (!CanvasRenderingContext2D.prototype.roundRect) {
   CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
     r = Math.min(r, w/2, h/2);
     this.beginPath();
-    this.moveTo(x + r, y);
-    this.lineTo(x + w - r, y);
-    this.quadraticCurveTo(x + w, y, x + w, y + r);
-    this.lineTo(x + w, y + h - r);
-    this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    this.lineTo(x + r, y + h);
-    this.quadraticCurveTo(x, y + h, x, y + h - r);
-    this.lineTo(x, y + r);
-    this.quadraticCurveTo(x, y, x + r, y);
-    this.closePath();
-    return this;
+    this.moveTo(x+r, y); this.lineTo(x+w-r, y);
+    this.quadraticCurveTo(x+w,y,x+w,y+r); this.lineTo(x+w,y+h-r);
+    this.quadraticCurveTo(x+w,y+h,x+w-r,y+h); this.lineTo(x+r,y+h);
+    this.quadraticCurveTo(x,y+h,x,y+h-r); this.lineTo(x,y+r);
+    this.quadraticCurveTo(x,y,x+r,y); this.closePath(); return this;
   };
 }
 
@@ -206,66 +163,55 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 // ─────────────────────────────────────────────
 const GROUND_Y    = 370;
 const GRAVITY     = 0.46;
-const RIVER_START = 350;   // left bank x
-const RAMP_X      = RIVER_START - 18; // ramp peak flush with river left bank
-const RIVER_BASE  = 100;   // starting width
-const RIVER_GROW  = 18;    // pixels wider per level
-const RIVER_MAX   = W - RIVER_START - 110; // right bank never goes off-screen
-const ISLAND_W    = 45;    // land bridge width between rivers in phase 2
-
-// Cloud World
-const CLOUD_ZONE_Y  = 80;   // car.y below this → entering cloud zone
-const CLOUD_GRAVITY = 0.14; // floaty physics up there
+const RIVER_START = 350;
+const RAMP_X      = RIVER_START - 18;
+const RIVER_BASE  = 100;
+const RIVER_GROW  = 18;
+const RIVER_MAX   = W - RIVER_START - 110;
+const ISLAND_W    = 45;
+const CLOUD_ENTER_Y = 75;  // car.y below this triggers cloud world
+const CLOUD_GRAVITY = 0.13;
 
 // ─────────────────────────────────────────────
-//  LEVEL THEME  (changes sky, ground, river, etc.)
+//  LEVEL THEME
 // ─────────────────────────────────────────────
 function getTheme() {
   if (level >= 21) return {
     sky1:'#08002a', sky2:'#3b0068',
     grass:'#1a0535', road:'#110220', roadLine:'#7c3aed',
     river:'#2810b0', riverDark:'#10058a',
-    name:'🌌 Cosmic Arena', nameColor:'#c084fc',
-    sun: null
+    name:'🌌 Cosmic Arena', nameColor:'#c084fc', sun:null
   };
   if (level >= 16) return {
     sky1:'#8ab4c8', sky2:'#d8eef8',
     grass:'#c0d8e8', road:'#8090a0', roadLine:'#e2e8f0',
     river:'#4499cc', riverDark:'#2266aa',
-    name:'❄️ Ice Stadium', nameColor:'#bae6fd',
-    sun: '#fff8dc'
+    name:'❄️ Ice Stadium', nameColor:'#bae6fd', sun:'#fff8dc'
   };
   if (level >= 11) return {
     sky1:'#7a2208', sky2:'#e87020',
     grass:'#b07838', road:'#7a6040', roadLine:'#e2d090',
     river:'#1a38b8', riverDark:'#0a2090',
-    name:'🏜️ Desert Arena', nameColor:'#fb923c',
-    sun: '#ffe040'
+    name:'🏜️ Desert Arena', nameColor:'#fb923c', sun:'#ffe040'
   };
   if (level >= 6) return {
     sky1:'#020810', sky2:'#0c1a30',
     grass:'#0e1e0e', road:'#1a1a1a', roadLine:'#3a4a5a',
     river:'#0a1e60', riverDark:'#050e38',
-    name:'🌙 Night Stadium', nameColor:'#93c5fd',
-    sun: null   // no sun at night
+    name:'🌙 Night Stadium', nameColor:'#93c5fd', sun:null
   };
   return {
     sky1:'#1a3a5c', sky2:'#6eb5d8',
     grass:'#3d6b4f', road:'#4a4a4a', roadLine:'#e2e8f0',
     river:'#1565c0', riverDark:'#0d47a1',
-    name:'', nameColor:'#4ade80',
-    sun: '#ffe566'
+    name:'', nameColor:'#4ade80', sun:'#ffe566'
   };
 }
 
-// ─────────────────────────────────────────────
-//  DYNAMIC RAMP HEIGHT  (grows every 3 levels)
-// ─────────────────────────────────────────────
 function getRampH() {
   return Math.min(38 + Math.floor((level - 1) / 3) * 6, 102);
 }
 
-// Surface helpers (use dynamic ramp height)
 function surfaceY(cx) {
   const rh = getRampH();
   if (cx >= RAMP_X - 50 && cx < RAMP_X)
@@ -284,8 +230,8 @@ function getRightBank() {
 function rightSurfaceY(cx) {
   const rh = getRampH();
   const rr = getRightBank();
-  if (cx >= rr && cx <= rr + 18)       return GROUND_Y - rh;
-  if (cx > rr + 18 && cx <= rr + 68)  return GROUND_Y - rh * (1 - (cx - rr - 18) / 50);
+  if (cx >= rr && cx <= rr + 18)      return GROUND_Y - rh;
+  if (cx > rr + 18 && cx <= rr + 68) return GROUND_Y - rh * (1 - (cx - rr - 18) / 50);
   return GROUND_Y;
 }
 
@@ -304,195 +250,201 @@ const UPG = {
 // ─────────────────────────────────────────────
 //  GAME STATE
 // ─────────────────────────────────────────────
-let state = 'menu';   // menu | driving | airborne | landed | shop | gameover
+// states: menu | driving | airborne | cloudworld | landed | shop | gameover
+let state = 'menu';
 let level = 1;
 let lives        = 3;
 let totalCoins   = 0;
 let sessionCoins = 0;
 let riverWidth   = RIVER_BASE;
 let river2Width  = 0;
-
-let frame   = 0;
+let frame = 0;
 let waveOff = 0;
 let particles = [];
-let airCoins  = [];
+let airCoins  = [];   // falling coins — replenished during airborne/cloudworld
+let bgSprites = [];
+let leftLandMsg = 0; // countdown timer for "Too short!" message
 
 // ─────────────────────────────────────────────
 //  CLOUD WORLD STATE
 // ─────────────────────────────────────────────
-let cloudPlatforms      = [];
-let cloudZoneActive     = false;  // true while car is in the cloud zone
-let cloudBonusThisRun   = 0;      // coins earned from cloud bounces
+let cloudPlatforms  = [];
+let cloudBonus      = 0;
 
 function generateCloudPlatforms() {
   cloudPlatforms = [];
-  // 4 rows, each with one platform at a random x
-  const rows = [35, 100, 170, 245];
+  cloudBonus = 0;
+  // 5 platforms spread down the screen; some drift horizontally
+  const rows = [70, 145, 220, 300, 385];
   rows.forEach((ry, i) => {
-    const pw = 110 + Math.random() * 80;
+    const pw = 100 + Math.random() * 90;
+    const moving = Math.random() > 0.35;
     cloudPlatforms.push({
       x:      30 + Math.random() * (W - pw - 60),
+      baseX:  0,  // set below
       y:      ry,
       w:      pw,
       h:      32,
       phase:  Math.random() * Math.PI * 2,
-      bounced: false
+      moving: moving,
+      dir:    Math.random() > 0.5 ? 1 : -1,
+      speed:  0.5 + Math.random() * 1.2
     });
+    cloudPlatforms[cloudPlatforms.length-1].baseX = cloudPlatforms[cloudPlatforms.length-1].x;
   });
-  cloudBonusThisRun = 0;
-}
-
-// ─────────────────────────────────────────────
-//  BACKGROUND PARTICLES (stars / sand / snow)
-// ─────────────────────────────────────────────
-let bgSprites = [];   // theme-specific background decorations
-
-function generateBgSprites() {
-  bgSprites = [];
-  if (level >= 21) {
-    // Stars + two small planets
-    for (let i = 0; i < 80; i++)
-      bgSprites.push({ type:'star', x:Math.random()*W, y:Math.random()*(GROUND_Y-30),
-                       r:0.5+Math.random()*2, twinkle:Math.random()*Math.PI*2 });
-    bgSprites.push({ type:'planet', x:180, y:55, r:28, c:'#7c3aed', c2:'#a855f7' });
-    bgSprites.push({ type:'planet', x:W-130, y:80, r:18, c:'#be185d', c2:'#ec4899' });
-  } else if (level >= 16) {
-    // Falling snowflakes
-    for (let i = 0; i < 55; i++)
-      bgSprites.push({ type:'snow', x:Math.random()*W, y:Math.random()*(GROUND_Y-10),
-                       r:2+Math.random()*3, speed:0.4+Math.random()*0.7 });
-  } else if (level >= 11) {
-    // Blowing sand particles
-    for (let i = 0; i < 40; i++)
-      bgSprites.push({ type:'sand', x:Math.random()*W, y:180+Math.random()*(GROUND_Y-200),
-                       r:1.5+Math.random()*2.5, speed:1+Math.random()*2 });
-  } else if (level >= 6) {
-    // Stars (night)
-    for (let i = 0; i < 100; i++)
-      bgSprites.push({ type:'star', x:Math.random()*W, y:Math.random()*(GROUND_Y-40),
-                       r:0.5+Math.random()*2, twinkle:Math.random()*Math.PI*2 });
-  }
 }
 
 // ─────────────────────────────────────────────
 //  CAR
 // ─────────────────────────────────────────────
 let car = {};
-let boosted      = false;
-let flipUsed     = false;
-let flipCooldown = 0;
+let boosted = false, flipUsed = false, flipCooldown = 0;
 
 function resetCar() {
-  car = {
-    x: 10, y: GROUND_Y - 30,
-    vx: 0, vy: 0,
-    angle: 0,
-    w: 58, h: 28,
-    spinning: false, spinVel: 0
-  };
-  boosted          = false;
-  flipUsed         = false;
-  flipCooldown     = 0;
-  sessionCoins     = 0;
-  cloudZoneActive  = false;
-  cloudBonusThisRun = 0;
-  cloudPlatforms   = [];
-  airCoins         = spawnCoins();
-  particles        = [];
+  car = { x:10, y:GROUND_Y-30, vx:0, vy:0, angle:0, w:58, h:28,
+          spinning:false, spinVel:0 };
+  boosted = false; flipUsed = false; flipCooldown = 0;
+  sessionCoins = 0;
+  airCoins  = [];
+  particles = [];
+  leftLandMsg = 0;
 }
 resetCar();
 
 // ─────────────────────────────────────────────
-//  COINS
+//  FALLING COINS  (spawn at top, drift down)
 // ─────────────────────────────────────────────
-function spawnCoins() {
-  const out = [];
-  const base = 3 + UPG.magnet.lv * 2 + Math.floor(Math.random() * 2);
-  const addCoins = (rl, rw) => {
-    if (rw < 36) return;
-    for (let i = 0; i < base; i++) {
-      out.push({ x: rl + 18 + Math.random() * (rw - 36),
-                 y: GROUND_Y - 65 - Math.random() * 90,
-                 r: 11, anim: Math.random() * Math.PI * 2, collected: false });
+function spawnFallingCoin() {
+  const x = 20 + Math.random() * (W - 40);
+  airCoins.push({
+    x, y: -14,
+    vx: (Math.random() - 0.5) * 0.7,
+    vy: 0.9 + Math.random() * 1.4,
+    r: 11,
+    anim: Math.random() * Math.PI * 2,
+    collected: false
+  });
+}
+
+function updateFallingCoins() {
+  // Prune off-screen coins
+  airCoins = airCoins.filter(c => !c.collected && c.y < GROUND_Y + 20);
+
+  // Spawn new ones
+  const maxCoins = 6 + UPG.magnet.lv * 2;
+  if (airCoins.length < maxCoins && frame % 38 === 0) spawnFallingCoin();
+
+  // Move
+  airCoins.forEach(c => {
+    c.y   += c.vy;
+    c.x   += c.vx;
+    c.anim += 0.09;
+    if (c.x < 10)    c.vx =  Math.abs(c.vx);
+    if (c.x > W - 10) c.vx = -Math.abs(c.vx);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  BG SPRITES
+// ─────────────────────────────────────────────
+function generateBgSprites() {
+  bgSprites = [];
+  if (level >= 21) {
+    for (let i = 0; i < 80; i++)
+      bgSprites.push({ type:'star', x:Math.random()*W, y:Math.random()*(GROUND_Y-30),
+                       r:0.5+Math.random()*2, twinkle:Math.random()*Math.PI*2 });
+    bgSprites.push({ type:'planet', x:180, y:55, r:28, c:'#7c3aed', c2:'#a855f7' });
+    bgSprites.push({ type:'planet', x:W-130, y:80, r:18, c:'#be185d', c2:'#ec4899' });
+  } else if (level >= 16) {
+    for (let i = 0; i < 55; i++)
+      bgSprites.push({ type:'snow', x:Math.random()*W, y:Math.random()*(GROUND_Y-10),
+                       r:2+Math.random()*3, speed:0.4+Math.random()*0.7,
+                       phase:Math.random()*Math.PI*2 });
+  } else if (level >= 11) {
+    for (let i = 0; i < 40; i++)
+      bgSprites.push({ type:'sand', x:Math.random()*W, y:180+Math.random()*(GROUND_Y-200),
+                       r:1.5+Math.random()*2.5, speed:1+Math.random()*2 });
+  } else if (level >= 6) {
+    for (let i = 0; i < 100; i++)
+      bgSprites.push({ type:'star', x:Math.random()*W, y:Math.random()*(GROUND_Y-40),
+                       r:0.5+Math.random()*2, twinkle:Math.random()*Math.PI*2 });
+  }
+}
+
+function updateBgSprites() {
+  bgSprites.forEach(s => {
+    if (s.type==='snow') {
+      s.y += s.speed; s.x += Math.sin(frame*0.02+s.phase)*0.4;
+      if (s.y > GROUND_Y) { s.y=-8; s.x=Math.random()*W; }
     }
-  };
-  addCoins(RIVER_START, riverWidth);
-  if (river2Width > 0) addCoins(RIVER_START + riverWidth + ISLAND_W, river2Width);
-  return out;
+    if (s.type==='sand') { s.x+=s.speed; if (s.x>W+10){s.x=-10;s.y=180+Math.random()*(GROUND_Y-200);} }
+    if (s.type==='star') s.twinkle+=0.04;
+  });
 }
 
 // ─────────────────────────────────────────────
 //  INPUT
 // ─────────────────────────────────────────────
 const keys = {};
-
 window.addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if ([' ','enter','arrowleft','arrowright','arrowup','arrowdown'].includes(k)) e.preventDefault();
   if (keys[k]) return;
   keys[k] = true;
-  if (k === ' ' || k === 'enter') { onJump(); }
-  if (k === 'f')                  { onFlip();  }
-  if (k === 'b')                  { onBoost(); }
+  if (k===' '||k==='enter') onJump();
+  if (k==='f') onFlip();
+  if (k==='b') onBoost();
 });
-window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+window.addEventListener('keyup', e => { keys[e.key.toLowerCase()]=false; });
 
 canvas.addEventListener('pointerdown', e => {
   e.preventDefault();
-  if (state === 'airborne') { onFlip(); }
-  else                      { onJump(); }
-}, { passive: false });
+  if (state==='airborne'||state==='cloudworld') onFlip();
+  else onJump();
+}, { passive:false });
 
 document.getElementById('boostBtn').addEventListener('pointerdown', e => {
   e.stopPropagation(); e.preventDefault(); onBoost();
-}, { passive: false });
+}, { passive:false });
 document.getElementById('flipBtn').addEventListener('pointerdown', e => {
   e.stopPropagation(); e.preventDefault(); onFlip();
-}, { passive: false });
+}, { passive:false });
 
 function onJump() {
-  if (state === 'menu')    { startGame(); return; }
-  if (state === 'driving') { launch(); }
+  if (state==='menu')    { startGame(); return; }
+  if (state==='driving') { launch(); }
 }
-
 function onBoost() {
-  if (state !== 'driving' || boosted) return;
-  boosted = true;
-  car.vx += 2.2 + UPG.turbo.lv * 0.9;
-  document.getElementById('boostBtn').disabled = true;
-  spawnParticles(car.x, car.y + car.h/2, '#ff6b35', 8);
+  if (state!=='driving'||boosted) return;
+  boosted=true;
+  car.vx+=2.2+UPG.turbo.lv*0.9;
+  document.getElementById('boostBtn').disabled=true;
+  spawnParticles(car.x, car.y+car.h/2, '#ff6b35', 8);
 }
-
 function onFlip() {
-  if (state !== 'airborne' || flipUsed) return;
-  flipUsed     = true;
-  car.spinning = true;
-  car.spinVel  = 0.38;
-  document.getElementById('flipBtn').disabled = true;
-  spawnParticles(car.x + car.w/2, car.y + car.h/2, '#a855f7', 10);
+  if ((state!=='airborne'&&state!=='cloudworld')||flipUsed) return;
+  flipUsed=true; car.spinning=true; car.spinVel=0.38;
+  document.getElementById('flipBtn').disabled=true;
+  spawnParticles(car.x+car.w/2, car.y+car.h/2, '#a855f7', 10);
 }
 
 // ─────────────────────────────────────────────
 //  GAME FLOW
 // ─────────────────────────────────────────────
 function startGame() {
-  level       = 1;
-  lives       = 3;
-  totalCoins  = 0;
-  riverWidth  = RIVER_BASE;
-  river2Width = 0;
-  Object.values(UPG).forEach(u => u.lv = 0);
+  level=1; lives=3; totalCoins=0;
+  riverWidth=RIVER_BASE; river2Width=0;
+  Object.values(UPG).forEach(u=>u.lv=0);
   generateBgSprites();
-  resetCar();
-  goState('driving');
+  resetCar(); goState('driving');
 }
 
 function launch() {
-  if (state !== 'driving') return;
-  const springMult = 1 + UPG.springs.lv * 0.28;
-  const boostBonus = boosted ? (1.6 + UPG.turbo.lv * 0.5) : 0;
-  car.vx = Math.max(car.vx, 1) * 1.35;
-  car.vy = -(11 * springMult + boostBonus);
+  if (state!=='driving') return;
+  const springMult = 1+UPG.springs.lv*0.28;
+  const boostBonus = boosted ? (1.6+UPG.turbo.lv*0.5) : 0;
+  car.vx = Math.max(car.vx,1)*1.35;
+  car.vy = -(11*springMult+boostBonus);
   car.angle = -0.22;
   goState('airborne');
   document.getElementById('flipBtn').disabled  = false;
@@ -500,47 +452,102 @@ function launch() {
 }
 
 function goState(s) {
-  state = s;
+  state=s;
   const btns = document.getElementById('buttons');
-  btns.style.display = (s === 'driving' || s === 'airborne') ? 'flex' : 'none';
-  if (s === 'driving') {
-    document.getElementById('boostBtn').disabled = false;
-    document.getElementById('flipBtn').disabled  = true;
+  btns.style.display = (s==='driving'||s==='airborne'||s==='cloudworld') ? 'flex' : 'none';
+  if (s==='driving') {
+    document.getElementById('boostBtn').disabled=false;
+    document.getElementById('flipBtn').disabled=true;
+  }
+  if (s==='cloudworld') {
+    document.getElementById('boostBtn').disabled=true;
+    document.getElementById('flipBtn').disabled=flipUsed;
   }
 }
 
-function onLand(inRiver) {
-  if (inRiver) {
-    totalCoins += sessionCoins;
-    lives--;
-    spawnParticles(car.x + car.w/2, GROUND_Y, '#1e90ff', 20);
-    goState('gameover');
-    if (lives > 0) {
-      setTimeout(() => { resetCar(); goState('driving'); }, 2200);
-    } else {
-      setTimeout(() => goState('menu'), 3200);
-    }
+// Called when car successfully clears the river and lands on right bank
+function onSuccess() {
+  lives=3;
+  if (flipUsed) sessionCoins+=3;
+  car.vx*=(0.28-UPG.grip.lv*0.04);
+  car.vy=0; car.spinning=false; car.angle=0;
+  totalCoins+=sessionCoins;
+  level++;
+  if (level<=20) {
+    riverWidth  = Math.min(RIVER_BASE+(level-1)*RIVER_GROW, RIVER_MAX);
+    river2Width = 0;
   } else {
-    lives = 3;
-    if (flipUsed) sessionCoins += 3;
-    car.vx  *= (0.28 - UPG.grip.lv * 0.04);
-    car.vy   = 0;
-    car.spinning = false;
-    car.angle = 0;
-    totalCoins += sessionCoins;
-    level++;
-    if (level <= 20) {
-      riverWidth  = Math.min(RIVER_BASE + (level - 1) * RIVER_GROW, RIVER_MAX);
-      river2Width = 0;
-    } else {
-      const pl    = level - 20;
-      riverWidth  = Math.min(75 + (pl - 1) * 10, 150);
-      river2Width = Math.min(55 + (pl - 1) * 8,  120);
-    }
-    generateBgSprites();  // update theme decorations for new level
-    spawnParticles(car.x + car.w/2, car.y, '#4ade80', 14);
-    goState('landed');
-    setTimeout(() => openShop(), 900);
+    const pl=level-20;
+    riverWidth  = Math.min(75+(pl-1)*10, 150);
+    river2Width = Math.min(55+(pl-1)*8,  120);
+  }
+  generateBgSprites();
+  spawnParticles(car.x+car.w/2, car.y, '#4ade80', 14);
+  goState('landed');
+  setTimeout(()=>openShop(), 900);
+}
+
+// Called when car lands in water or on rocks
+function onDrown() {
+  totalCoins+=sessionCoins;
+  lives--;
+  spawnParticles(car.x+car.w/2, GROUND_Y, '#1e90ff', 20);
+  goState('gameover');
+  if (lives>0) {
+    setTimeout(()=>{ resetCar(); goState('driving'); }, 2200);
+  } else {
+    setTimeout(()=>goState('menu'), 3200);
+  }
+}
+
+// Called when car falls back onto the LEFT bank (didn't make it over the river)
+function onLeftLand() {
+  car.vy=0; car.vx=0; car.angle=0; car.spinning=false;
+  car.y = GROUND_Y - car.h;  // snap to ground
+  leftLandMsg = 90;           // show "Too short!" for 90 frames
+  goState('driving');
+}
+
+// ─────────────────────────────────────────────
+//  CLOUD WORLD LANDING
+// ─────────────────────────────────────────────
+function onCloudLand(cp) {
+  // Landed on a cloud → level complete!  Big bonus.
+  const bonus = 10 + cloudBonus + Math.floor(UPG.magnet.lv*3);
+  sessionCoins += bonus;
+  cloudBonus    = 0;
+  car.vy=0; car.vx*=0.5; car.spinning=false; car.angle=0;
+  cp.landed=true;
+  spawnParticles(car.x+car.w/2, car.y+car.h, '#ffffff', 20);
+  spawnParticles(car.x+car.w/2, car.y+car.h, '#ffd700', 12);
+  // Treat as a successful landing
+  lives=3;
+  if (flipUsed) sessionCoins+=3;
+  totalCoins+=sessionCoins;
+  level++;
+  if (level<=20) {
+    riverWidth  = Math.min(RIVER_BASE+(level-1)*RIVER_GROW, RIVER_MAX);
+    river2Width = 0;
+  } else {
+    const pl=level-20;
+    riverWidth  = Math.min(75+(pl-1)*10, 150);
+    river2Width = Math.min(55+(pl-1)*8,  120);
+  }
+  generateBgSprites();
+  goState('landed');
+  setTimeout(()=>openShop(), 1000);
+}
+
+function onCloudFail() {
+  // Fell through all clouds — lose a life
+  totalCoins+=sessionCoins;
+  lives--;
+  spawnParticles(car.x+car.w/2, H, '#1e90ff', 16);
+  goState('gameover');
+  if (lives>0) {
+    setTimeout(()=>{ resetCar(); goState('driving'); }, 2200);
+  } else {
+    setTimeout(()=>goState('menu'), 3200);
   }
 }
 
@@ -550,920 +557,650 @@ function onLand(inRiver) {
 function openShop() {
   goState('shop');
   renderShop();
-  document.getElementById('shopOverlay').style.display = 'flex';
+  document.getElementById('shopOverlay').style.display='flex';
 }
-
 function renderShop() {
-  document.getElementById('shopMeta').textContent  = `Level ${level - 1} complete — Level ${level} next`;
+  document.getElementById('shopMeta').textContent  = `Level ${level-1} complete — Level ${level} next`;
   document.getElementById('shopCoins').textContent = `💰 ${totalCoins} coins  (+${sessionCoins} this run)`;
-  const grid = document.getElementById('shopGrid');
-  grid.innerHTML = '';
-
-  Object.entries(UPG).forEach(([key, u]) => {
-    const maxed      = u.lv >= u.max;
-    const cost       = maxed ? null : u.costs[u.lv];
-    const canAfford  = !maxed && totalCoins >= cost;
-
-    const div = document.createElement('div');
-    div.className = 'shopItem' + (maxed ? ' maxed' : !canAfford ? ' cantAfford' : '');
-
-    const dots = Array.from({length: u.max}, (_, i) =>
-      `<div class="sDot ${i < u.lv ? 'on' : ''}"></div>`).join('');
-
-    div.innerHTML = `
-      <div class="sEmoji">${u.emoji}</div>
-      <div class="sName">${u.name}</div>
-      <div class="sDesc">${u.desc}</div>
-      <div class="sBar">${dots}</div>
-      <div class="sCost">${maxed ? '✅ MAX' : canAfford ? `💰 ${cost}` : `🔒 ${cost}`}</div>`;
-
-    if (canAfford) {
-      div.addEventListener('click', () => {
-        totalCoins -= cost;
-        u.lv++;
-        renderShop();
-      });
-    }
+  const grid=document.getElementById('shopGrid');
+  grid.innerHTML='';
+  Object.entries(UPG).forEach(([key,u])=>{
+    const maxed=u.lv>=u.max, cost=maxed?null:u.costs[u.lv];
+    const canAfford=!maxed&&totalCoins>=cost;
+    const div=document.createElement('div');
+    div.className='shopItem'+(maxed?' maxed':!canAfford?' cantAfford':'');
+    const dots=Array.from({length:u.max},(_,i)=>`<div class="sDot ${i<u.lv?'on':''}"></div>`).join('');
+    div.innerHTML=`<div class="sEmoji">${u.emoji}</div><div class="sName">${u.name}</div>
+      <div class="sDesc">${u.desc}</div><div class="sBar">${dots}</div>
+      <div class="sCost">${maxed?'✅ MAX':canAfford?`💰 ${cost}`:`🔒 ${cost}`}</div>`;
+    if (canAfford) div.addEventListener('click',()=>{ totalCoins-=cost; u.lv++; renderShop(); });
     grid.appendChild(div);
   });
 }
-
-document.getElementById('continueBtn').addEventListener('click', () => {
-  document.getElementById('shopOverlay').style.display = 'none';
-  resetCar();
-  goState('driving');
+document.getElementById('continueBtn').addEventListener('click',()=>{
+  document.getElementById('shopOverlay').style.display='none';
+  resetCar(); goState('driving');
 });
 
 // ─────────────────────────────────────────────
 //  PARTICLES
 // ─────────────────────────────────────────────
-function spawnParticles(x, y, color, n) {
-  for (let i = 0; i < n; i++) {
-    const a = Math.random() * Math.PI * 2;
-    const s = 1.5 + Math.random() * 4;
-    particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s - 2,
-                     life: 1, decay: 0.03 + Math.random()*0.03, color, r: 3+Math.random()*3 });
+function spawnParticles(x,y,color,n) {
+  for (let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2, s=1.5+Math.random()*4;
+    particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,
+                    life:1,decay:0.03+Math.random()*0.03,color,r:3+Math.random()*3});
   }
 }
-
 function updateParticles() {
-  particles = particles.filter(p => p.life > 0);
-  particles.forEach(p => {
-    p.x += p.vx; p.y += p.vy;
-    p.vy += 0.18;
-    p.life -= p.decay;
-  });
+  particles=particles.filter(p=>p.life>0);
+  particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.18;p.life-=p.decay;});
 }
 
 // ─────────────────────────────────────────────
 //  UPDATE
 // ─────────────────────────────────────────────
 function update() {
-  frame++;
-  waveOff += 0.055;
-  updateParticles();
-  updateBgSprites();
+  frame++; waveOff+=0.055;
+  updateParticles(); updateBgSprites();
+  if (leftLandMsg>0) leftLandMsg--;
 
-  if (state === 'driving') {
-    const maxSpd = (3 + UPG.engine.lv * 0.5) * (boosted ? (1.35 + UPG.turbo.lv * 0.22) : 1);
-    if (keys['arrowright'] || keys['d']) {
-      car.vx = Math.min(car.vx + 0.06, maxSpd);
-    } else if (keys['arrowleft'] || keys['a']) {
-      car.vx = Math.max(car.vx - 0.15, 0);
-    } else {
-      car.vx *= 0.90;
-    }
-    car.x += car.vx;
-    if (car.x < 0) { car.x = 0; car.vx = 0; }
-
-    const cx = car.x + car.w / 2;
-    car.y = surfaceY(cx) - car.h;
-
-    const rh = getRampH();
-    if (cx >= RAMP_X - 50 && cx < RAMP_X) {
-      car.angle = Math.atan2(-rh, 50) * 0.85;
-    } else {
-      car.angle = 0;
-    }
-
-    if (car.x + car.w >= RAMP_X + 18) launch();
+  // ── DRIVING ──────────────────────────────────────────────────
+  if (state==='driving') {
+    const maxSpd=(3+UPG.engine.lv*0.5)*(boosted?(1.35+UPG.turbo.lv*0.22):1);
+    if (keys['arrowright']||keys['d']) car.vx=Math.min(car.vx+0.06,maxSpd);
+    else if (keys['arrowleft']||keys['a']) car.vx=Math.max(car.vx-0.15,0);
+    else car.vx*=0.90;
+    car.x+=car.vx; if(car.x<0){car.x=0;car.vx=0;}
+    const cx=car.x+car.w/2;
+    car.y=surfaceY(cx)-car.h;
+    const rh=getRampH();
+    if(cx>=RAMP_X-50&&cx<RAMP_X) car.angle=Math.atan2(-rh,50)*0.85;
+    else car.angle=0;
+    if(car.x+car.w>=RAMP_X+18) launch();
   }
 
-  if (state === 'airborne') {
-    car.vy += GRAVITY;
-    car.x  += car.vx;
-    car.y  += car.vy;
+  // ── AIRBORNE ─────────────────────────────────────────────────
+  if (state==='airborne') {
+    car.vy+=GRAVITY; car.x+=car.vx; car.y+=car.vy;
 
-    // ── Cloud World check ──────────────────────────────────────
-    const inCloudZone = car.y < CLOUD_ZONE_Y;
-    if (inCloudZone && !cloudZoneActive) {
-      // Just entered cloud world — generate platforms
-      cloudZoneActive = true;
+    // Enter cloud world?
+    if (car.y < CLOUD_ENTER_Y) {
       generateCloudPlatforms();
-    }
-    if (!inCloudZone && cloudZoneActive) {
-      cloudZoneActive = false;   // exited cloud zone
-    }
-
-    if (inCloudZone) {
-      // Reduce gravity a bit while floating up there
-      car.vy -= (GRAVITY - CLOUD_GRAVITY) * 0.5;
-
-      // Check bounces off cloud platforms
-      cloudPlatforms.forEach(cp => {
-        if (cp.bounced) return;
-        const cpY = cp.y + Math.sin(frame * 0.04 + cp.phase) * 7;
-        const carBottom = car.y + car.h;
-        if (car.x + car.w > cp.x + 10 && car.x < cp.x + cp.w - 10 &&
-            carBottom >= cpY && carBottom <= cpY + 22 && car.vy > 0) {
-          cp.bounced = true;
-          const bonus = 5 + Math.floor(UPG.magnet.lv * 1.5);
-          cloudBonusThisRun += bonus;
-          sessionCoins      += bonus;
-          car.vy  = -(5.5 + Math.random() * 2.5);
-          car.y   = cpY - car.h;
-          // White + sky blue burst
-          spawnParticles(car.x + car.w/2, cpY, '#ffffff', 14);
-          spawnParticles(car.x + car.w/2, cpY, '#7dd3fc', 8);
-        }
-      });
-    }
-    // ── End cloud world ────────────────────────────────────────
-
-    if (car.spinning) {
-      car.angle  += car.spinVel;
-      car.spinVel = Math.max(0.05, car.spinVel * 0.985);
-    } else {
-      car.angle = Math.atan2(car.vy, car.vx) * 0.4;
+      goState('cloudworld');
+      // Car enters from top — keep its x, set y just below top
+      car.y  = 0;
+      car.vy = Math.max(car.vy, 1.2);  // ensure falling (not going further up)
+      car.vx = Math.sign(car.vx) * Math.max(Math.abs(car.vx), 2);
+      return;
     }
 
-    // Coin magnet collection
-    const cr = 22 + UPG.magnet.lv * 12;
-    airCoins.forEach(c => {
-      if (c.collected) return;
-      const dx = (car.x + car.w/2) - c.x;
-      const dy = (car.y + car.h/2) - c.y;
-      if (Math.sqrt(dx*dx + dy*dy) < cr + c.r) {
-        c.collected = true;
-        sessionCoins++;
-        spawnParticles(c.x, c.y, '#ffd700', 5);
+    updateFallingCoins();
+    collectCoins();
+
+    if (car.spinning) { car.angle+=car.spinVel; car.spinVel=Math.max(0.05,car.spinVel*0.985); }
+    else car.angle=Math.atan2(car.vy,car.vx)*0.4;
+
+    const lcx=car.x+car.w/2;
+
+    // LEFT BANK — no death, just soft-reset
+    if (lcx < RIVER_START) {
+      const leftSurf = surfaceY(lcx);
+      if (car.y+car.h >= leftSurf) { car.y=leftSurf-car.h; onLeftLand(); return; }
+    }
+
+    // RIGHT SIDE landing detection
+    const landSurf=rightSurfaceY(lcx);
+    if (car.y+car.h>=landSurf) {
+      car.y=landSurf-car.h;
+      const rl=RIVER_START, rr1=rl+riverWidth, rr=getRightBank();
+      const inRiver1 = lcx>rl  && lcx<rr1;
+      const inIsland = river2Width>0 && lcx>=rr1 && lcx<rr1+ISLAND_W;
+      const inRiver2 = river2Width>0 && lcx>=rr1+ISLAND_W && lcx<rr;
+      const onRightBank = lcx>=rr;
+      if (onRightBank) { onSuccess(); }
+      else if (inRiver1||inRiver2) { onDrown(); }
+      else if (inIsland) { onDrown(); }
+      else { onDrown(); }  // should not normally reach
+    }
+    if (car.y>H+80) onDrown();
+  }
+
+  // ── CLOUD WORLD ──────────────────────────────────────────────
+  if (state==='cloudworld') {
+    car.vy+=CLOUD_GRAVITY;
+    // Player can steer left/right in cloud world
+    if (keys['arrowright']||keys['d']) car.vx=Math.min(car.vx+0.09, 5.5);
+    else if (keys['arrowleft']||keys['a']) car.vx=Math.max(car.vx-0.09,-5.5);
+    car.x+=car.vx; car.y+=car.vy;
+
+    // Wrap sides
+    if (car.x+car.w<0) car.x=W;
+    if (car.x>W)       car.x=-car.w;
+
+    // Tilt to direction
+    if (!car.spinning) car.angle=Math.atan2(car.vy,car.vx)*0.35;
+
+    updateFallingCoins();
+    collectCoins();
+
+    // Move cloud platforms
+    cloudPlatforms.forEach(cp=>{
+      if (cp.moving) {
+        cp.x+=cp.dir*cp.speed;
+        if (cp.x<10||cp.x+cp.w>W-10) cp.dir*=-1;
+      }
+      // Gentle float
+      cp.displayY = cp.y+Math.sin(frame*0.04+cp.phase)*8;
+    });
+
+    // Collision with cloud platforms
+    cloudPlatforms.forEach(cp=>{
+      if (cp.landed) return;
+      const cpY=cp.displayY||cp.y;
+      const carBottom=car.y+car.h;
+      if (car.x+car.w>cp.x+8 && car.x<cp.x+cp.w-8 &&
+          carBottom>=cpY && carBottom<=cpY+28 && car.vy>0) {
+        onCloudLand(cp);
       }
     });
 
-    // Land detection
-    const lcx      = car.x + car.w / 2;
-    const landSurf = rightSurfaceY(lcx);
-    if (car.y + car.h >= landSurf) {
-      car.y = landSurf - car.h;
-      const rl  = RIVER_START;
-      const rr1 = rl + riverWidth;
-      const rr  = getRightBank();
-      const inRiver1   = lcx > rl  && lcx < rr1;
-      const inIsland   = river2Width > 0 && lcx >= rr1 && lcx < rr1 + ISLAND_W;
-      const inRiver2   = river2Width > 0 && lcx >= rr1 + ISLAND_W && lcx < rr;
-      const clearRight = lcx >= rr;
-      onLand(inRiver1 || inIsland || inRiver2 || !clearRight);
-    }
-    if (car.y > H + 80) onLand(true);
+    // Fell off bottom = fail
+    if (car.y>H+60) onCloudFail();
+
+    // Spin
+    if (car.spinning) { car.angle+=car.spinVel; car.spinVel=Math.max(0.05,car.spinVel*0.985); }
   }
 
-  if (state === 'landed') {
-    car.vx *= 0.88;
-    car.x  += car.vx;
-  }
+  // ── LANDED (brief celebration) ────────────────────────────────
+  if (state==='landed') { car.vx*=0.88; car.x+=car.vx; }
 }
 
-// ─────────────────────────────────────────────
-//  BG SPRITE UPDATES  (snow fall, sand drift, star twinkle)
-// ─────────────────────────────────────────────
-function updateBgSprites() {
-  bgSprites.forEach(s => {
-    if (s.type === 'snow') {
-      s.y += s.speed;
-      s.x += Math.sin(frame * 0.02 + s.phase) * 0.4;
-      if (s.y > GROUND_Y) { s.y = -8; s.x = Math.random() * W; }
-    }
-    if (s.type === 'sand') {
-      s.x += s.speed;
-      if (s.x > W + 10) { s.x = -10; s.y = 180 + Math.random() * (GROUND_Y - 200); }
-    }
-    if (s.type === 'star') {
-      s.twinkle += 0.04;
+// Coin collection — shared between airborne & cloudworld
+function collectCoins() {
+  const cr=22+UPG.magnet.lv*12;
+  airCoins.forEach(c=>{
+    if(c.collected) return;
+    const dx=(car.x+car.w/2)-c.x, dy=(car.y+car.h/2)-c.y;
+    if(Math.sqrt(dx*dx+dy*dy)<cr+c.r){
+      c.collected=true; sessionCoins++;
+      if(state==='cloudworld') cloudBonus++;
+      spawnParticles(c.x,c.y,'#ffd700',5);
     }
   });
 }
 
 // ─────────────────────────────────────────────
-//  DRAW
+//  DRAW  ─  Background
 // ─────────────────────────────────────────────
 function drawBG() {
-  const t = getTheme();
-
-  // Sky gradient
-  const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-  sky.addColorStop(0, t.sky1);
-  sky.addColorStop(1, t.sky2);
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, W, H);
-
-  // Sun (or moon for night)
-  if (t.sun) {
-    ctx.fillStyle = t.sun;
-    ctx.beginPath(); ctx.arc(W - 90, 62, 38, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = `${t.sun}30`;
-    ctx.beginPath(); ctx.arc(W - 90, 62, 60, 0, Math.PI*2); ctx.fill();
-  } else if (level >= 6 && level < 11) {
-    // Moon
-    ctx.fillStyle = '#d1d5db';
-    ctx.beginPath(); ctx.arc(W - 90, 62, 30, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = t.sky1;
-    ctx.beginPath(); ctx.arc(W - 80, 56, 26, 0, Math.PI*2); ctx.fill();
+  const t=getTheme();
+  if (state==='cloudworld') {
+    // Cloud world sky — bright azure
+    const sky=ctx.createLinearGradient(0,0,0,H);
+    sky.addColorStop(0,'#c7f2ff'); sky.addColorStop(0.5,'#89d8f5'); sky.addColorStop(1,'#55b8d4');
+    ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
+    drawRainbow();
+    return;
   }
 
-  // Background decorations (stars, snow, sand, planets)
-  drawBgSprites();
+  const sky=ctx.createLinearGradient(0,0,0,GROUND_Y);
+  sky.addColorStop(0,t.sky1); sky.addColorStop(1,t.sky2);
+  ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
 
-  // Clouds (only for day/ice themes)
-  if (level < 6 || (level >= 16 && level < 21)) {
-    const cloudAlpha = level >= 16 ? 0.9 : 0.82;
-    drawCloud(100, 55, 1.0, cloudAlpha);
-    drawCloud(360, 38, 1.3, cloudAlpha);
-    drawCloud(620, 70, 0.75, cloudAlpha);
+  if (t.sun) {
+    ctx.fillStyle=t.sun;
+    ctx.beginPath(); ctx.arc(W-90,62,38,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=t.sun+'30';
+    ctx.beginPath(); ctx.arc(W-90,62,60,0,Math.PI*2); ctx.fill();
+  } else if (level>=6&&level<11) {
+    ctx.fillStyle='#d1d5db'; ctx.beginPath(); ctx.arc(W-90,62,30,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=t.sky1;    ctx.beginPath(); ctx.arc(W-80,56,26,0,Math.PI*2); ctx.fill();
+  }
+  drawBgSpritesCanvas();
+  if (level<6||(level>=16&&level<21)) {
+    drawCloud(100,55,1.0); drawCloud(360,38,1.3); drawCloud(620,70,0.75);
   }
 }
 
-function drawBgSprites() {
-  bgSprites.forEach(s => {
-    if (s.type === 'star') {
-      const a = 0.5 + Math.sin(s.twinkle) * 0.4;
-      ctx.globalAlpha = a;
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
-      ctx.globalAlpha = 1;
+function drawRainbow() {
+  const cx=W*0.5, cy=H*1.05;
+  const colors=['#ff4444','#ff8800','#ffdd00','#22cc44','#2288ff','#9933ee'];
+  colors.forEach((c,i)=>{
+    ctx.strokeStyle=c; ctx.lineWidth=13; ctx.globalAlpha=0.25;
+    ctx.beginPath(); ctx.arc(cx,cy,190+i*18,Math.PI,0); ctx.stroke();
+  });
+  ctx.globalAlpha=1;
+}
+
+function drawBgSpritesCanvas() {
+  bgSprites.forEach(s=>{
+    if (s.type==='star') {
+      const a=0.5+Math.sin(s.twinkle)*0.4;
+      ctx.globalAlpha=a; ctx.fillStyle='#fff';
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
     }
-    if (s.type === 'planet') {
-      ctx.fillStyle = s.c;
-      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = s.c2;
-      ctx.globalAlpha = 0.4;
-      ctx.beginPath(); ctx.arc(s.x - s.r*0.25, s.y - s.r*0.25, s.r * 0.6, 0, Math.PI*2); ctx.fill();
-      ctx.globalAlpha = 1;
-      // Ring
-      ctx.strokeStyle = s.c2;
-      ctx.lineWidth = 3;
-      ctx.globalAlpha = 0.5;
-      ctx.beginPath();
-      ctx.ellipse(s.x, s.y + s.r*0.1, s.r*1.5, s.r*0.35, -0.3, 0, Math.PI*2);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
+    if (s.type==='planet') {
+      ctx.fillStyle=s.c; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=s.c2; ctx.globalAlpha=0.4;
+      ctx.beginPath(); ctx.arc(s.x-s.r*0.25,s.y-s.r*0.25,s.r*0.6,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=0.45; ctx.strokeStyle=s.c2; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.ellipse(s.x,s.y+s.r*0.1,s.r*1.5,s.r*0.35,-0.3,0,Math.PI*2); ctx.stroke();
+      ctx.globalAlpha=1;
     }
-    if (s.type === 'snow') {
-      ctx.fillStyle = 'rgba(220,240,255,0.85)';
-      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+    if (s.type==='snow') {
+      ctx.fillStyle='rgba(220,240,255,0.85)';
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
     }
-    if (s.type === 'sand') {
-      ctx.fillStyle = 'rgba(200,160,80,0.55)';
-      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+    if (s.type==='sand') {
+      ctx.fillStyle='rgba(200,160,80,0.55)';
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
     }
   });
 }
 
-function drawCloud(x, y, s, alpha) {
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = level >= 16 ? 'rgba(240,248,255,0.9)' : 'rgba(255,255,255,0.82)';
-  const r = s * 36;
+function drawCloud(x,y,s,alpha=0.82) {
+  ctx.globalAlpha=alpha;
+  ctx.fillStyle=level>=16?'rgba(240,248,255,0.9)':'rgba(255,255,255,0.82)';
+  const r=s*36;
   ctx.beginPath();
-  ctx.arc(x,         y,         r * 0.62, 0, Math.PI*2);
-  ctx.arc(x + r*0.5, y - r*0.18, r * 0.5,  0, Math.PI*2);
-  ctx.arc(x + r,     y,         r * 0.55, 0, Math.PI*2);
-  ctx.fill();
-  ctx.globalAlpha = 1;
-}
-
-function drawGround() {
-  const t   = getTheme();
-  const rh  = getRampH();
-  const rl  = RIVER_START;
-  const rr1 = rl + riverWidth;
-  const rr  = getRightBank();
-
-  // Left ground fill
-  ctx.fillStyle = t.grass;
-  ctx.fillRect(0, GROUND_Y, rl, H - GROUND_Y);
-
-  // Road surface
-  ctx.fillStyle = t.road;
-  ctx.fillRect(0, GROUND_Y, rl, 10);
-
-  // Road dashes
-  ctx.fillStyle = t.roadLine;
-  for (let rx = 20; rx < rl - 30; rx += 70) {
-    ctx.fillRect(rx, GROUND_Y + 3, 42, 4);
-  }
-
-  // Ramp
-  ctx.fillStyle = level >= 6 ? '#4a4a6a' : '#5a5a5a';
-  ctx.beginPath();
-  ctx.moveTo(RAMP_X - 50, GROUND_Y);
-  ctx.lineTo(RAMP_X,      GROUND_Y - rh);
-  ctx.lineTo(RAMP_X + 18, GROUND_Y - rh);
-  ctx.lineTo(RAMP_X + 18, GROUND_Y);
-  ctx.closePath();
-  ctx.fill();
-  // Ramp edge highlight
-  ctx.strokeStyle = level >= 21 ? '#a855f7' : '#888';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(RAMP_X - 50, GROUND_Y);
-  ctx.lineTo(RAMP_X, GROUND_Y - rh);
-  ctx.stroke();
-  // Ramp height indicator (shows that it's taller at high levels)
-  if (rh > 50) {
-    ctx.fillStyle = 'rgba(255,120,50,0.7)';
-    ctx.font = `bold ${Math.min(10, 7 + Math.floor(rh/20))}px Segoe UI`;
-    ctx.textAlign = 'center';
-    ctx.fillText(`▲ ${rh}`, RAMP_X - 8, GROUND_Y - rh - 6);
-  }
-
-  // ── River 1 ──
-  ctx.fillStyle = t.river;
-  ctx.fillRect(rl, GROUND_Y, riverWidth, H - GROUND_Y);
-
-  const drawWaves = (wl, wr) => {
-    ctx.fillStyle = 'rgba(255,255,255,0.22)';
-    ctx.beginPath(); ctx.moveTo(wl, GROUND_Y + 12);
-    for (let wx = wl; wx <= wr; wx += 4)
-      ctx.lineTo(wx, GROUND_Y + 12 + Math.sin((wx / 28) + waveOff) * 5);
-    ctx.lineTo(wr, GROUND_Y + 12); ctx.lineTo(wl, GROUND_Y + 12); ctx.fill();
-
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    ctx.beginPath(); ctx.moveTo(wl, GROUND_Y + 28);
-    for (let wx = wl; wx <= wr; wx += 4)
-      ctx.lineTo(wx, GROUND_Y + 28 + Math.sin((wx / 22) + waveOff * 1.4 + 1.2) * 4);
-    ctx.lineTo(wr, GROUND_Y + 28); ctx.lineTo(wl, GROUND_Y + 28); ctx.fill();
-  };
-  drawWaves(rl, rr1);
-
-  ctx.strokeStyle = t.riverDark; ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.moveTo(rl,  GROUND_Y); ctx.lineTo(rl,  H); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(rr1, GROUND_Y); ctx.lineTo(rr1, H); ctx.stroke();
-
-  // ── Island + River 2 (phase 2) ──
-  if (river2Width > 0) {
-    const il = rr1, ir = rr1 + ISLAND_W;
-    const r2l = ir, r2r = rr;
-
-    ctx.fillStyle = '#b45309';
-    ctx.fillRect(il, GROUND_Y, ISLAND_W, H - GROUND_Y);
-    ctx.fillStyle = '#92400e';
-    ctx.fillRect(il, GROUND_Y, ISLAND_W, 6);
-    // Rocks grow taller every 10 levels
-    const rockH = Math.min(10 + Math.floor(level / 10) * 14, 80);
-    for (let rx = il + 6; rx < ir - 6; rx += 13) {
-      const spikeH = rockH * (0.6 + Math.abs(Math.sin(rx * 1.7)) * 0.4);
-      ctx.fillStyle = '#78350f';
-      ctx.beginPath();
-      ctx.moveTo(rx - 6, GROUND_Y);
-      ctx.lineTo(rx,     GROUND_Y - spikeH);
-      ctx.lineTo(rx + 6, GROUND_Y);
-      ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#4a1f06';
-      ctx.beginPath();
-      ctx.moveTo(rx - 3, GROUND_Y - spikeH * 0.55);
-      ctx.lineTo(rx,     GROUND_Y - spikeH);
-      ctx.lineTo(rx + 3, GROUND_Y - spikeH * 0.55);
-      ctx.closePath(); ctx.fill();
-    }
-    ctx.fillStyle = 'rgba(255,200,100,0.9)';
-    ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
-    ctx.fillText('ROCKS', il + ISLAND_W/2, GROUND_Y - rockH - 8);
-
-    ctx.fillStyle = t.river;
-    ctx.fillRect(r2l, GROUND_Y, river2Width, H - GROUND_Y);
-    drawWaves(r2l, r2r);
-    ctx.strokeStyle = t.riverDark; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(r2l, GROUND_Y); ctx.lineTo(r2l, H); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(r2r, GROUND_Y); ctx.lineTo(r2r, H); ctx.stroke();
-  }
-
-  // Right ground fill
-  ctx.fillStyle = t.grass;
-  ctx.fillRect(rr, GROUND_Y, W - rr, H - GROUND_Y);
-  ctx.fillStyle = '#fde047';
-  ctx.fillRect(rr, GROUND_Y, W - rr, 7);
-
-  // Right landing ramp (slopes down from river edge)
-  ctx.fillStyle = level >= 6 ? '#4a4a6a' : '#5a5a5a';
-  ctx.beginPath();
-  ctx.moveTo(rr,      GROUND_Y);
-  ctx.lineTo(rr,      GROUND_Y - rh);
-  ctx.lineTo(rr + 18, GROUND_Y - rh);
-  ctx.lineTo(rr + 68, GROUND_Y);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = level >= 21 ? '#a855f7' : '#888';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(rr + 18, GROUND_Y - rh);
-  ctx.lineTo(rr + 68, GROUND_Y);
-  ctx.stroke();
-
-  // "LAND HERE" text
-  if (W - rr > 80) {
-    ctx.fillStyle = 'rgba(253,224,71,0.7)';
-    ctx.font = 'bold 12px Segoe UI';
-    ctx.textAlign = 'center';
-    ctx.fillText('LAND HERE', rr + (W - rr) / 2, GROUND_Y - rh - 8);
-  }
-
-  // Theme-specific ground decorations
-  drawGroundDecorations(t, rr);
-}
-
-function drawGroundDecorations(t, rr) {
-  if (level >= 21) {
-    // Alien spires instead of trees
-    drawSpire(30,  GROUND_Y);
-    drawSpire(80,  GROUND_Y - 12);
-    drawSpire(175, GROUND_Y);
-    if (W - rr > 90)  drawSpire(rr + 90,  GROUND_Y);
-    if (W - rr > 160) drawSpire(rr + 160, GROUND_Y - 8);
-  } else if (level >= 16) {
-    // Snowy trees
-    drawSnowTree(30, GROUND_Y);
-    drawSnowTree(80, GROUND_Y - 12);
-    drawSnowTree(180, GROUND_Y);
-    if (W - rr > 90)  drawSnowTree(rr + 90,  GROUND_Y);
-    if (W - rr > 160) drawSnowTree(rr + 160, GROUND_Y - 8);
-  } else if (level >= 11) {
-    // Cacti
-    drawCactus(40, GROUND_Y);
-    drawCactus(100, GROUND_Y);
-    drawCactus(190, GROUND_Y);
-    if (W - rr > 90)  drawCactus(rr + 90,  GROUND_Y);
-    if (W - rr > 160) drawCactus(rr + 160, GROUND_Y);
-  } else if (level >= 6) {
-    // Night lampposts
-    drawLamppost(30,  GROUND_Y);
-    drawLamppost(180, GROUND_Y);
-    if (W - rr > 90)  drawLamppost(rr + 90,  GROUND_Y);
-    if (W - rr > 150) drawLamppost(rr + 150, GROUND_Y);
-  } else {
-    drawTree(30, GROUND_Y);
-    drawTree(80, GROUND_Y - 12);
-    drawTree(180, GROUND_Y);
-    if (W - rr > 90)  drawTree(rr + 90,  GROUND_Y);
-    if (W - rr > 160) drawTree(rr + 160, GROUND_Y - 8);
-  }
-}
-
-function drawTree(x, y) {
-  ctx.fillStyle = '#6b4f2e';
-  ctx.fillRect(x - 4, y - 22, 8, 22);
-  ctx.fillStyle = '#2d7a4a';
-  ctx.beginPath();
-  ctx.moveTo(x, y - 60); ctx.lineTo(x - 20, y - 22); ctx.lineTo(x + 20, y - 22);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#38a35e';
-  ctx.beginPath();
-  ctx.moveTo(x, y - 76); ctx.lineTo(x - 14, y - 44); ctx.lineTo(x + 14, y - 44);
-  ctx.closePath(); ctx.fill();
-}
-
-function drawSnowTree(x, y) {
-  ctx.fillStyle = '#5a3a1e';
-  ctx.fillRect(x - 4, y - 22, 8, 22);
-  ctx.fillStyle = '#2a5a3a';
-  ctx.beginPath();
-  ctx.moveTo(x, y - 62); ctx.lineTo(x - 20, y - 22); ctx.lineTo(x + 20, y - 22);
-  ctx.closePath(); ctx.fill();
-  // Snow cap
-  ctx.fillStyle = 'rgba(220,240,255,0.9)';
-  ctx.beginPath();
-  ctx.moveTo(x, y - 62); ctx.lineTo(x - 10, y - 48); ctx.lineTo(x + 10, y - 48);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#1a4a2a';
-  ctx.beginPath();
-  ctx.moveTo(x, y - 78); ctx.lineTo(x - 14, y - 46); ctx.lineTo(x + 14, y - 46);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = 'rgba(220,240,255,0.9)';
-  ctx.beginPath();
-  ctx.moveTo(x, y - 78); ctx.lineTo(x - 7, y - 66); ctx.lineTo(x + 7, y - 66);
-  ctx.closePath(); ctx.fill();
-}
-
-function drawCactus(x, y) {
-  ctx.fillStyle = '#2d6a2a';
-  ctx.fillRect(x - 5, y - 55, 10, 55);
-  // Arms
-  ctx.fillRect(x - 20, y - 40, 15, 8);
-  ctx.fillRect(x - 20, y - 55, 8, 18);
-  ctx.fillRect(x + 5,  y - 35, 15, 8);
-  ctx.fillRect(x + 12, y - 50, 8, 18);
-  ctx.fillStyle = '#3a8a36';
-  ctx.fillRect(x - 4, y - 53, 8, 51);
-}
-
-function drawLamppost(x, y) {
-  ctx.fillStyle = '#4a4a6a';
-  ctx.fillRect(x - 3, y - 70, 6, 70);
-  // Lamp arm
-  ctx.fillRect(x - 3, y - 70, 22, 5);
-  // Lamp glow
-  ctx.fillStyle = 'rgba(255,220,80,0.9)';
-  ctx.beginPath(); ctx.arc(x + 19, y - 68, 8, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'rgba(255,220,80,0.15)';
-  ctx.beginPath(); ctx.arc(x + 19, y - 68, 22, 0, Math.PI*2); ctx.fill();
-}
-
-function drawSpire(x, y) {
-  // Alien crystal spire
-  const gradient = ctx.createLinearGradient(x, y, x, y - 70);
-  gradient.addColorStop(0, '#5b21b6');
-  gradient.addColorStop(1, '#c084fc');
-  ctx.fillStyle = gradient;
-  ctx.beginPath();
-  ctx.moveTo(x, y - 70);
-  ctx.lineTo(x - 10, y - 10);
-  ctx.lineTo(x + 10, y - 10);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = 'rgba(192,132,252,0.3)';
-  ctx.beginPath();
-  ctx.moveTo(x, y - 70);
-  ctx.lineTo(x + 3, y - 10);
-  ctx.lineTo(x + 10, y - 10);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function drawCar() {
-  const cx = car.x + car.w / 2;
-  const cy = car.y + car.h / 2;
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(car.angle);
-
-  // Shadow (only when near ground)
-  const shadowAlpha = Math.max(0, 1 - (GROUND_Y - car.y - car.h) / 200);
-  ctx.fillStyle = `rgba(0,0,0,${shadowAlpha * 0.3})`;
-  ctx.beginPath();
-  ctx.ellipse(0, car.h/2 + 4, car.w * 0.46, 6, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  // Body
-  ctx.fillStyle = '#e63946';
-  ctx.beginPath(); ctx.roundRect(-car.w/2, -car.h/2, car.w, car.h, 7); ctx.fill();
-
-  // Roof
-  ctx.fillStyle = '#c1121f';
-  ctx.beginPath();
-  ctx.roundRect(-car.w/2 + 9, -car.h/2 - 15, car.w - 22, 19, [4,4,0,0]);
-  ctx.fill();
-
-  // Windows
-  ctx.fillStyle = 'rgba(186,230,253,0.85)';
-  ctx.fillRect(-car.w/2 + 11, -car.h/2 - 13, 18, 13);
-  ctx.fillRect(-car.w/2 + 33, -car.h/2 - 13, 14, 13);
-
-  // Headlight
-  ctx.fillStyle = '#fef08a';
-  ctx.beginPath();
-  ctx.ellipse(car.w/2 - 4, -car.h/4, 5, 4, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  // Wheels
-  drawWheel(-car.w/3, car.h/2);
-  drawWheel( car.w/3, car.h/2);
-
-  // Boost flame
-  if (boosted && (state === 'driving' || state === 'airborne')) {
-    const flameLen = 18 + Math.random() * 12;
-    ctx.fillStyle = '#ff6b35';
-    ctx.beginPath();
-    ctx.moveTo(-car.w/2,  -5);
-    ctx.lineTo(-car.w/2 - flameLen, 0);
-    ctx.lineTo(-car.w/2,  5);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#ffd700';
-    ctx.beginPath();
-    ctx.moveTo(-car.w/2, -3);
-    ctx.lineTo(-car.w/2 - flameLen * 0.6, 0);
-    ctx.lineTo(-car.w/2,  3);
-    ctx.closePath(); ctx.fill();
-  }
-
-  // Flip trail
-  if (car.spinning) {
-    ctx.fillStyle = 'rgba(168,85,247,0.5)';
-    for (let i = 1; i <= 4; i++) {
-      ctx.beginPath();
-      ctx.arc(-car.w/2 - i * 12, (Math.random()-0.5)*16, 4 - i*0.5, 0, Math.PI*2);
-      ctx.fill();
-    }
-  }
-
-  ctx.restore();
-}
-
-function drawWheel(ox, oy) {
-  ctx.fillStyle = '#1a1a1a';
-  ctx.beginPath(); ctx.arc(ox, oy, 10, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#555';
-  ctx.beginPath(); ctx.arc(ox, oy,  5, 0, Math.PI*2); ctx.fill();
+  ctx.arc(x,      y,      r*0.62,0,Math.PI*2);
+  ctx.arc(x+r*0.5,y-r*0.18,r*0.5,0,Math.PI*2);
+  ctx.arc(x+r,    y,      r*0.55,0,Math.PI*2);
+  ctx.fill(); ctx.globalAlpha=1;
 }
 
 // ─────────────────────────────────────────────
-//  CLOUD WORLD DRAW
+//  DRAW  ─  Ground / River
+// ─────────────────────────────────────────────
+function drawGround() {
+  if (state==='cloudworld') { drawCloudWorld(); return; }
+  const t=getTheme(), rh=getRampH();
+  const rl=RIVER_START, rr1=rl+riverWidth, rr=getRightBank();
+
+  ctx.fillStyle=t.grass; ctx.fillRect(0,GROUND_Y,rl,H-GROUND_Y);
+  ctx.fillStyle=t.road;  ctx.fillRect(0,GROUND_Y,rl,10);
+  ctx.fillStyle=t.roadLine;
+  for(let rx=20;rx<rl-30;rx+=70) ctx.fillRect(rx,GROUND_Y+3,42,4);
+
+  // Left ramp
+  ctx.fillStyle=level>=6?'#4a4a6a':'#5a5a5a';
+  ctx.beginPath();
+  ctx.moveTo(RAMP_X-50,GROUND_Y); ctx.lineTo(RAMP_X,GROUND_Y-rh);
+  ctx.lineTo(RAMP_X+18,GROUND_Y-rh); ctx.lineTo(RAMP_X+18,GROUND_Y);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=level>=21?'#a855f7':'#888'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(RAMP_X-50,GROUND_Y); ctx.lineTo(RAMP_X,GROUND_Y-rh); ctx.stroke();
+  if (rh>50) {
+    ctx.fillStyle='rgba(255,120,50,0.7)'; ctx.font=`bold 10px Segoe UI`; ctx.textAlign='center';
+    ctx.fillText(`▲${rh}`,RAMP_X-8,GROUND_Y-rh-6);
+  }
+
+  // River 1
+  ctx.fillStyle=t.river; ctx.fillRect(rl,GROUND_Y,riverWidth,H-GROUND_Y);
+  drawWaves(rl,rr1,t);
+  ctx.strokeStyle=t.riverDark; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(rl,GROUND_Y); ctx.lineTo(rl,H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(rr1,GROUND_Y); ctx.lineTo(rr1,H); ctx.stroke();
+
+  // Island + River 2
+  if (river2Width>0) {
+    const il=rr1, ir=rr1+ISLAND_W;
+    ctx.fillStyle='#b45309'; ctx.fillRect(il,GROUND_Y,ISLAND_W,H-GROUND_Y);
+    ctx.fillStyle='#92400e'; ctx.fillRect(il,GROUND_Y,ISLAND_W,6);
+
+    const rockH=Math.min(10+Math.floor(level/10)*14,80);
+    for(let rx=il+6;rx<ir-6;rx+=13){
+      const spikeH=rockH*(0.6+Math.abs(Math.sin(rx*1.7))*0.4);
+      ctx.fillStyle='#78350f';
+      ctx.beginPath(); ctx.moveTo(rx-6,GROUND_Y); ctx.lineTo(rx,GROUND_Y-spikeH); ctx.lineTo(rx+6,GROUND_Y); ctx.closePath(); ctx.fill();
+      ctx.fillStyle='#4a1f06';
+      ctx.beginPath(); ctx.moveTo(rx-3,GROUND_Y-spikeH*0.55); ctx.lineTo(rx,GROUND_Y-spikeH); ctx.lineTo(rx+3,GROUND_Y-spikeH*0.55); ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle='rgba(255,200,100,0.9)'; ctx.font='bold 9px Segoe UI'; ctx.textAlign='center';
+    ctx.fillText('ROCKS',il+ISLAND_W/2,GROUND_Y-rockH-8);
+
+    ctx.fillStyle=t.river; ctx.fillRect(ir,GROUND_Y,river2Width,H-GROUND_Y);
+    drawWaves(ir,rr,t);
+    ctx.strokeStyle=t.riverDark; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(ir,GROUND_Y); ctx.lineTo(ir,H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(rr,GROUND_Y); ctx.lineTo(rr,H); ctx.stroke();
+  }
+
+  // Right ground
+  ctx.fillStyle=t.grass; ctx.fillRect(rr,GROUND_Y,W-rr,H-GROUND_Y);
+  ctx.fillStyle='#fde047'; ctx.fillRect(rr,GROUND_Y,W-rr,7);
+
+  // Right ramp
+  ctx.fillStyle=level>=6?'#4a4a6a':'#5a5a5a';
+  ctx.beginPath();
+  ctx.moveTo(rr,GROUND_Y); ctx.lineTo(rr,GROUND_Y-rh);
+  ctx.lineTo(rr+18,GROUND_Y-rh); ctx.lineTo(rr+68,GROUND_Y);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=level>=21?'#a855f7':'#888'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(rr+18,GROUND_Y-rh); ctx.lineTo(rr+68,GROUND_Y); ctx.stroke();
+
+  if (W-rr>80) {
+    ctx.fillStyle='rgba(253,224,71,0.7)'; ctx.font='bold 12px Segoe UI'; ctx.textAlign='center';
+    ctx.fillText('LAND HERE',rr+(W-rr)/2,GROUND_Y-rh-8);
+  }
+
+  drawGroundDecorations(t,rr);
+}
+
+function drawWaves(wl,wr,t) {
+  ctx.fillStyle='rgba(255,255,255,0.22)';
+  ctx.beginPath(); ctx.moveTo(wl,GROUND_Y+12);
+  for(let wx=wl;wx<=wr;wx+=4) ctx.lineTo(wx,GROUND_Y+12+Math.sin(wx/28+waveOff)*5);
+  ctx.lineTo(wr,GROUND_Y+12); ctx.lineTo(wl,GROUND_Y+12); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.12)';
+  ctx.beginPath(); ctx.moveTo(wl,GROUND_Y+28);
+  for(let wx=wl;wx<=wr;wx+=4) ctx.lineTo(wx,GROUND_Y+28+Math.sin(wx/22+waveOff*1.4+1.2)*4);
+  ctx.lineTo(wr,GROUND_Y+28); ctx.lineTo(wl,GROUND_Y+28); ctx.fill();
+}
+
+// ─────────────────────────────────────────────
+//  DRAW  ─  Cloud World (full scene)
 // ─────────────────────────────────────────────
 function drawCloudWorld() {
-  if (!state === 'airborne' && !cloudZoneActive) return;
-  if (car.y > CLOUD_ZONE_Y + 160) return;  // too far below to show
-
-  // Fade alpha based on how high the car is
-  const fadeTop    = CLOUD_ZONE_Y - 20;
-  const fadeBottom = CLOUD_ZONE_Y + 160;
-  const alpha = Math.max(0, Math.min(1, 1 - (car.y - fadeTop) / (fadeBottom - fadeTop)));
-  if (alpha <= 0) return;
-
-  ctx.globalAlpha = alpha;
-
-  // Bright sky overlay
-  const sky = ctx.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, '#c7f2ff');
-  sky.addColorStop(0.6, '#89d8f5');
-  sky.addColorStop(1, '#55b8d4');
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, W, H);
-
-  // Rainbow arc
-  drawRainbow(alpha);
+  // Bottomless sky floor (so it doesn't look cut off)
+  ctx.fillStyle='#55b8d4'; ctx.fillRect(0,GROUND_Y,W,H-GROUND_Y);
 
   // Cloud platforms
-  cloudPlatforms.forEach(cp => {
-    const floatY = cp.y + Math.sin(frame * 0.04 + cp.phase) * 7;
-    drawCloudPlatform(cp.x, floatY, cp.w, cp.h, cp.bounced);
+  cloudPlatforms.forEach(cp=>{
+    drawCloudPlatform(cp.x, cp.displayY||cp.y, cp.w, cp.h, !!cp.landed);
   });
 
-  // Cloud world label
-  if (alpha > 0.6) {
-    ctx.fillStyle = 'rgba(30,100,160,0.9)';
-    ctx.font = 'bold 26px Segoe UI';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillText('☁️  CLOUD WORLD  ☁️', W/2, 10);
-    if (cloudBonusThisRun > 0) {
-      ctx.fillStyle = '#ffd700';
-      ctx.font = 'bold 18px Segoe UI';
-      ctx.fillText(`+${cloudBonusThisRun} cloud coins!`, W/2, 44);
+  // "CLOUD WORLD" label at top
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillStyle='rgba(20,90,160,0.88)';
+  ctx.font='bold 26px Segoe UI';
+  ctx.fillText('☁️  CLOUD WORLD  ☁️', W/2, 8);
+
+  if (cloudBonus>0) {
+    ctx.fillStyle='#ffd700'; ctx.font='bold 16px Segoe UI';
+    ctx.fillText(`+${cloudBonus} cloud coins collected!`, W/2, 42);
+  }
+
+  // Steering hint
+  const pulse=0.6+Math.sin(frame*0.12)*0.35;
+  ctx.globalAlpha=pulse; ctx.fillStyle='rgba(20,80,140,0.9)'; ctx.font='bold 14px Segoe UI';
+  ctx.fillText('← → to steer · Land on a cloud to win! · Miss = lose a life', W/2, H-28);
+  ctx.globalAlpha=1;
+}
+
+function drawCloudPlatform(x,y,w,h,used) {
+  const r=h*0.9;
+  ctx.fillStyle=used?'rgba(180,220,255,0.65)':'rgba(255,255,255,0.97)';
+  ctx.beginPath();
+  ctx.arc(x+r,      y+h*0.3,  r,        0,Math.PI*2);
+  ctx.arc(x+w*0.38, y+h*0.08, r*0.88,   0,Math.PI*2);
+  ctx.arc(x+w*0.65, y+h*0.12, r*0.82,   0,Math.PI*2);
+  ctx.arc(x+w-r,    y+h*0.3,  r*0.78,   0,Math.PI*2);
+  ctx.fill();
+  ctx.fillRect(x+r*0.5, y+h*0.28, w-r, h*0.72);
+  if (!used) {
+    ctx.fillStyle='rgba(100,200,255,0.35)';
+    ctx.fillRect(x+r*0.5,y+h*0.28,w-r,h*0.18);
+    ctx.fillStyle='#ffd700'; ctx.font='bold 11px Segoe UI';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('💰',x+w/2,y+h*0.58);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  DRAW  ─  Ground decorations
+// ─────────────────────────────────────────────
+function drawGroundDecorations(t,rr) {
+  if (level>=21) {
+    drawSpire(30,GROUND_Y); drawSpire(80,GROUND_Y-12); drawSpire(175,GROUND_Y);
+    if(W-rr>90) drawSpire(rr+90,GROUND_Y);
+    if(W-rr>160) drawSpire(rr+160,GROUND_Y-8);
+  } else if (level>=16) {
+    drawSnowTree(30,GROUND_Y); drawSnowTree(80,GROUND_Y-12); drawSnowTree(180,GROUND_Y);
+    if(W-rr>90) drawSnowTree(rr+90,GROUND_Y); if(W-rr>160) drawSnowTree(rr+160,GROUND_Y-8);
+  } else if (level>=11) {
+    drawCactus(40,GROUND_Y); drawCactus(100,GROUND_Y); drawCactus(190,GROUND_Y);
+    if(W-rr>90) drawCactus(rr+90,GROUND_Y); if(W-rr>160) drawCactus(rr+160,GROUND_Y);
+  } else if (level>=6) {
+    drawLamppost(30,GROUND_Y); drawLamppost(180,GROUND_Y);
+    if(W-rr>90) drawLamppost(rr+90,GROUND_Y); if(W-rr>150) drawLamppost(rr+150,GROUND_Y);
+  } else {
+    drawTree(30,GROUND_Y); drawTree(80,GROUND_Y-12); drawTree(180,GROUND_Y);
+    if(W-rr>90) drawTree(rr+90,GROUND_Y); if(W-rr>160) drawTree(rr+160,GROUND_Y-8);
+  }
+}
+function drawTree(x,y){
+  ctx.fillStyle='#6b4f2e'; ctx.fillRect(x-4,y-22,8,22);
+  ctx.fillStyle='#2d7a4a'; ctx.beginPath(); ctx.moveTo(x,y-60); ctx.lineTo(x-20,y-22); ctx.lineTo(x+20,y-22); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#38a35e'; ctx.beginPath(); ctx.moveTo(x,y-76); ctx.lineTo(x-14,y-44); ctx.lineTo(x+14,y-44); ctx.closePath(); ctx.fill();
+}
+function drawSnowTree(x,y){
+  ctx.fillStyle='#5a3a1e'; ctx.fillRect(x-4,y-22,8,22);
+  ctx.fillStyle='#2a5a3a'; ctx.beginPath(); ctx.moveTo(x,y-62); ctx.lineTo(x-20,y-22); ctx.lineTo(x+20,y-22); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='rgba(220,240,255,0.9)'; ctx.beginPath(); ctx.moveTo(x,y-62); ctx.lineTo(x-10,y-48); ctx.lineTo(x+10,y-48); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#1a4a2a'; ctx.beginPath(); ctx.moveTo(x,y-78); ctx.lineTo(x-14,y-46); ctx.lineTo(x+14,y-46); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='rgba(220,240,255,0.9)'; ctx.beginPath(); ctx.moveTo(x,y-78); ctx.lineTo(x-7,y-66); ctx.lineTo(x+7,y-66); ctx.closePath(); ctx.fill();
+}
+function drawCactus(x,y){
+  ctx.fillStyle='#2d6a2a';
+  ctx.fillRect(x-5,y-55,10,55); ctx.fillRect(x-20,y-40,15,8); ctx.fillRect(x-20,y-55,8,18);
+  ctx.fillRect(x+5,y-35,15,8);  ctx.fillRect(x+12,y-50,8,18);
+  ctx.fillStyle='#3a8a36'; ctx.fillRect(x-4,y-53,8,51);
+}
+function drawLamppost(x,y){
+  ctx.fillStyle='#4a4a6a'; ctx.fillRect(x-3,y-70,6,70); ctx.fillRect(x-3,y-70,22,5);
+  ctx.fillStyle='rgba(255,220,80,0.9)'; ctx.beginPath(); ctx.arc(x+19,y-68,8,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,220,80,0.15)'; ctx.beginPath(); ctx.arc(x+19,y-68,22,0,Math.PI*2); ctx.fill();
+}
+function drawSpire(x,y){
+  const g=ctx.createLinearGradient(x,y,x,y-70);
+  g.addColorStop(0,'#5b21b6'); g.addColorStop(1,'#c084fc');
+  ctx.fillStyle=g;
+  ctx.beginPath(); ctx.moveTo(x,y-70); ctx.lineTo(x-10,y-10); ctx.lineTo(x+10,y-10); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='rgba(192,132,252,0.3)';
+  ctx.beginPath(); ctx.moveTo(x,y-70); ctx.lineTo(x+3,y-10); ctx.lineTo(x+10,y-10); ctx.closePath(); ctx.fill();
+}
+
+// ─────────────────────────────────────────────
+//  DRAW  ─  Car
+// ─────────────────────────────────────────────
+function drawCar() {
+  const cx=car.x+car.w/2, cy=car.y+car.h/2;
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(car.angle);
+
+  const shadowAlpha=Math.max(0,1-(GROUND_Y-car.y-car.h)/200);
+  ctx.fillStyle=`rgba(0,0,0,${shadowAlpha*0.3})`;
+  ctx.beginPath(); ctx.ellipse(0,car.h/2+4,car.w*0.46,6,0,0,Math.PI*2); ctx.fill();
+
+  ctx.fillStyle='#e63946';
+  ctx.beginPath(); ctx.roundRect(-car.w/2,-car.h/2,car.w,car.h,7); ctx.fill();
+  ctx.fillStyle='#c1121f';
+  ctx.beginPath(); ctx.roundRect(-car.w/2+9,-car.h/2-15,car.w-22,19,[4,4,0,0]); ctx.fill();
+  ctx.fillStyle='rgba(186,230,253,0.85)';
+  ctx.fillRect(-car.w/2+11,-car.h/2-13,18,13);
+  ctx.fillRect(-car.w/2+33,-car.h/2-13,14,13);
+  ctx.fillStyle='#fef08a';
+  ctx.beginPath(); ctx.ellipse(car.w/2-4,-car.h/4,5,4,0,0,Math.PI*2); ctx.fill();
+  drawWheel(-car.w/3,car.h/2); drawWheel(car.w/3,car.h/2);
+
+  if (boosted&&(state==='driving'||state==='airborne'||state==='cloudworld')) {
+    const fl=18+Math.random()*12;
+    ctx.fillStyle='#ff6b35'; ctx.beginPath(); ctx.moveTo(-car.w/2,-5); ctx.lineTo(-car.w/2-fl,0); ctx.lineTo(-car.w/2,5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#ffd700'; ctx.beginPath(); ctx.moveTo(-car.w/2,-3); ctx.lineTo(-car.w/2-fl*0.6,0); ctx.lineTo(-car.w/2,3); ctx.closePath(); ctx.fill();
+  }
+  if (car.spinning) {
+    ctx.fillStyle='rgba(168,85,247,0.5)';
+    for(let i=1;i<=4;i++){
+      ctx.beginPath(); ctx.arc(-car.w/2-i*12,(Math.random()-0.5)*16,4-i*0.5,0,Math.PI*2); ctx.fill();
     }
   }
-
-  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+function drawWheel(ox,oy){
+  ctx.fillStyle='#1a1a1a'; ctx.beginPath(); ctx.arc(ox,oy,10,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#555';    ctx.beginPath(); ctx.arc(ox,oy,5,0,Math.PI*2);  ctx.fill();
 }
 
-function drawRainbow(alpha) {
-  const cx = W * 0.45, cy = H * 0.9, r0 = 200;
-  const colors = ['#ff0000','#ff7700','#ffdd00','#00cc44','#1177ff','#8833ee'];
-  colors.forEach((c, i) => {
-    const r = r0 + i * 14;
-    ctx.strokeStyle = c;
-    ctx.lineWidth = 11;
-    ctx.globalAlpha = alpha * 0.3;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, Math.PI, 0);
-    ctx.stroke();
-  });
-  ctx.globalAlpha = alpha;
-}
-
-function drawCloudPlatform(x, y, w, h, used) {
-  const r = h * 0.9;
-  ctx.fillStyle = used ? 'rgba(180,210,240,0.7)' : 'rgba(255,255,255,0.96)';
-  ctx.beginPath();
-  ctx.arc(x + r,        y + h * 0.3,  r,        0, Math.PI*2);
-  ctx.arc(x + w * 0.35, y + h * 0.1,  r * 0.88, 0, Math.PI*2);
-  ctx.arc(x + w * 0.65, y + h * 0.15, r * 0.82, 0, Math.PI*2);
-  ctx.arc(x + w - r,    y + h * 0.3,  r * 0.78, 0, Math.PI*2);
-  ctx.fill();
-  // Flat bottom
-  ctx.fillRect(x + r * 0.5, y + h * 0.28, w - r, h * 0.72);
-  // Bounce indicator
-  if (!used) {
-    ctx.fillStyle = 'rgba(100,200,255,0.4)';
-    ctx.fillRect(x + r * 0.5, y + h * 0.28, w - r, h * 0.18);
-    // Coin icons on platform
-    ctx.fillStyle = '#ffd700';
-    ctx.font = 'bold 11px Segoe UI';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('💰', x + w/2, y + h * 0.55);
-  }
-}
-
+// ─────────────────────────────────────────────
+//  DRAW  ─  Falling Coins
+// ─────────────────────────────────────────────
 function drawCoins() {
-  airCoins.forEach(c => {
-    if (c.collected) return;
-    c.anim += 0.09;
-    const by = Math.sin(c.anim) * 4;
-    // Glow
-    ctx.fillStyle = 'rgba(255,215,0,0.18)';
-    ctx.beginPath(); ctx.arc(c.x, c.y + by, c.r + 7, 0, Math.PI*2); ctx.fill();
-    // Coin body
-    ctx.fillStyle = '#ffd700';
-    ctx.beginPath(); ctx.arc(c.x, c.y + by, c.r, 0, Math.PI*2); ctx.fill();
-    // Shine
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.beginPath(); ctx.arc(c.x - 3, c.y + by - 3, c.r*0.38, 0, Math.PI*2); ctx.fill();
-    // Label
-    ctx.fillStyle = '#a16207';
-    ctx.font = 'bold 9px Segoe UI';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('$', c.x, c.y + by + 0.5);
+  airCoins.forEach(c=>{
+    if(c.collected) return;
+    const by=Math.sin(c.anim)*3;
+    ctx.fillStyle='rgba(255,215,0,0.18)';
+    ctx.beginPath(); ctx.arc(c.x,c.y+by,c.r+7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#ffd700';
+    ctx.beginPath(); ctx.arc(c.x,c.y+by,c.r,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.45)';
+    ctx.beginPath(); ctx.arc(c.x-3,c.y+by-3,c.r*0.38,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#a16207'; ctx.font='bold 9px Segoe UI';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('$',c.x,c.y+by+0.5);
   });
 }
 
-function drawParticles() {
-  particles.forEach(p => {
-    ctx.globalAlpha = p.life;
-    ctx.fillStyle   = p.color;
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
-  });
-  ctx.globalAlpha = 1;
+function drawParticles(){
+  particles.forEach(p=>{ ctx.globalAlpha=p.life; ctx.fillStyle=p.color;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill(); });
+  ctx.globalAlpha=1;
 }
 
+// ─────────────────────────────────────────────
+//  DRAW  ─  HUD
+// ─────────────────────────────────────────────
 function drawHUD() {
-  if (state === 'menu' || state === 'gameover' || state === 'shop') return;
-  const t = getTheme();
-  ctx.textBaseline = 'top';
+  if (state==='menu'||state==='gameover'||state==='shop') return;
+  ctx.textBaseline='top';
 
   // Level badge
-  ctx.fillStyle = 'rgba(0,0,0,0.52)';
-  ctx.beginPath(); ctx.roundRect(10, 10, 120, 38, 8); ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 18px Segoe UI';
-  ctx.textAlign = 'left';
-  ctx.fillText(`Level ${level}`, 22, 19);
+  ctx.fillStyle='rgba(0,0,0,0.52)';
+  ctx.beginPath(); ctx.roundRect(10,10,120,38,8); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font='bold 18px Segoe UI'; ctx.textAlign='left';
+  ctx.fillText(`Level ${level}`,22,19);
 
   // Coins
-  ctx.fillStyle = 'rgba(0,0,0,0.52)';
-  ctx.beginPath(); ctx.roundRect(140, 10, 165, 38, 8); ctx.fill();
-  ctx.fillStyle = '#ffd700';
-  ctx.font = 'bold 17px Segoe UI';
-  ctx.fillText(`💰 ${totalCoins + sessionCoins}`, 154, 20);
+  ctx.fillStyle='rgba(0,0,0,0.52)';
+  ctx.beginPath(); ctx.roundRect(140,10,165,38,8); ctx.fill();
+  ctx.fillStyle='#ffd700'; ctx.font='bold 17px Segoe UI';
+  ctx.fillText(`💰 ${totalCoins+sessionCoins}`,154,20);
 
-  // Lives (hearts)
-  ctx.fillStyle = 'rgba(0,0,0,0.52)';
-  ctx.beginPath(); ctx.roundRect(W - 130, 10, 120, 38, 8); ctx.fill();
-  ctx.font = 'bold 20px Segoe UI';
-  ctx.textAlign = 'right';
-  ctx.fillText('❤️'.repeat(lives) + '🖤'.repeat(Math.max(0, 3 - lives)), W - 14, 32);
+  // Lives
+  ctx.fillStyle='rgba(0,0,0,0.52)';
+  ctx.beginPath(); ctx.roundRect(W-130,10,120,38,8); ctx.fill();
+  ctx.font='bold 20px Segoe UI'; ctx.textAlign='right';
+  ctx.fillText('❤️'.repeat(lives)+'🖤'.repeat(Math.max(0,3-lives)),W-14,32);
 
-  // Ramp height badge (shows when ramp is notably tall)
-  if (getRampH() > 60) {
-    ctx.fillStyle = 'rgba(0,0,0,0.52)';
-    ctx.beginPath(); ctx.roundRect(315, 10, 140, 38, 8); ctx.fill();
-    ctx.fillStyle = '#f97316';
-    ctx.font = 'bold 14px Segoe UI';
-    ctx.textAlign = 'left';
-    ctx.fillText(`🚀 Ramp Lv ${Math.floor((getRampH()-38)/6)+1}`, 328, 20);
+  // Ramp height badge
+  if (getRampH()>60) {
+    ctx.fillStyle='rgba(0,0,0,0.52)';
+    ctx.beginPath(); ctx.roundRect(315,10,140,38,8); ctx.fill();
+    ctx.fillStyle='#f97316'; ctx.font='bold 14px Segoe UI'; ctx.textAlign='left';
+    ctx.fillText(`🚀 Ramp Lv ${Math.floor((getRampH()-38)/6)+1}`,328,20);
   }
 
-  // Cloud world hint (show when near cloud zone while airborne)
-  if (state === 'airborne' && car.y < CLOUD_ZONE_Y + 200 && !cloudZoneActive) {
-    const dist = car.y - CLOUD_ZONE_Y;
-    if (dist > 0 && dist < 160) {
-      ctx.textAlign = 'center';
-      ctx.font = 'bold 14px Segoe UI';
-      ctx.fillStyle = '#7dd3fc';
-      const pulse = 0.6 + Math.sin(frame * 0.2) * 0.4;
-      ctx.globalAlpha = pulse;
-      ctx.fillText('☁️  Cloud World above — jump higher!', W/2, 56);
-      ctx.globalAlpha = 1;
+  // Cloud world indicator (near cloud zone while airborne)
+  if (state==='airborne' && car.y < CLOUD_ENTER_Y + 200) {
+    const pct = Math.max(0, 1 - car.y / (CLOUD_ENTER_Y + 200));
+    if (pct > 0.1) {
+      const pulse=0.55+Math.sin(frame*0.25)*0.4;
+      ctx.globalAlpha=pulse*pct; ctx.fillStyle='#7dd3fc';
+      ctx.font='bold 14px Segoe UI'; ctx.textAlign='center'; ctx.textBaseline='top';
+      ctx.fillText('☁️ Cloud World above — boost higher!',W/2,56);
+      ctx.globalAlpha=1;
     }
   }
 
-  // Airborne hints
-  if (state === 'airborne') {
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 15px Segoe UI';
-    ctx.fillStyle = flipUsed ? '#64748b' : '#c084fc';
-    ctx.fillText(
-      flipUsed ? '🌀 Flipped! +3 coins on landing' : '🌀 Press F or click to Flip for bonus coins!',
-      W/2, 14
-    );
+  // Airborne hint
+  if (state==='airborne') {
+    ctx.textAlign='center'; ctx.font='bold 15px Segoe UI'; ctx.textBaseline='top';
+    ctx.fillStyle=flipUsed?'#64748b':'#c084fc';
+    ctx.fillText(flipUsed?'🌀 Flipped! +3 coins on landing':'🌀 Press F or click to Flip for bonus coins!',W/2,14);
   }
 
   // Driving hint
-  if (state === 'driving') {
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 15px Segoe UI';
-    const pulse = Math.sin(frame * 0.1) * 0.3 + 0.7;
-    ctx.globalAlpha = pulse;
-    ctx.fillStyle = '#4ade80';
-    const hint = car.vx < 1
-      ? 'Hold → or D to drive,  then Space to jump!'
-      : 'Space or click to jump!   F to flip in the air';
-    ctx.fillText(hint, W/2, 14);
-    ctx.globalAlpha = 1;
+  if (state==='driving') {
+    ctx.textAlign='center'; ctx.font='bold 15px Segoe UI'; ctx.textBaseline='top';
+    const pulse=Math.sin(frame*0.1)*0.3+0.7;
+    ctx.globalAlpha=pulse; ctx.fillStyle='#4ade80';
+    ctx.fillText(car.vx<1?'Hold → or D to drive,  then Space to jump!':'Space or click to jump!   F to flip in the air',W/2,14);
+    ctx.globalAlpha=1;
+  }
+
+  // "Too short!" message
+  if (leftLandMsg>0) {
+    const a=Math.min(1, leftLandMsg/20);
+    ctx.globalAlpha=a; ctx.fillStyle='#fb923c';
+    ctx.font='bold 22px Segoe UI'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('Too short! Try again 🚗',W/2,H/2-40);
+    ctx.globalAlpha=1;
   }
 }
 
 function drawMenu() {
-  ctx.fillStyle = 'rgba(0,0,0,0.58)';
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.fillStyle = 'rgba(255,255,255,0.08)';
-  ctx.beginPath(); ctx.roundRect(W/2 - 220, H/2 - 120, 440, 240, 18); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.roundRect(W/2 - 220, H/2 - 120, 440, 240, 18); ctx.stroke();
-
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-
-  ctx.fillStyle = '#ffd700';
-  ctx.font = 'bold 54px Segoe UI';
-  ctx.fillText('🚗 CarJumper', W/2, H/2 - 52);
-
-  ctx.fillStyle = 'rgba(255,255,255,0.75)';
-  ctx.font = '17px Segoe UI';
-  ctx.fillText('Jump the river · Collect coins · Upgrade your car!', W/2, H/2 + 5);
-
-  ctx.fillStyle = 'rgba(255,255,255,0.55)';
-  ctx.font = '13px Segoe UI';
-  ctx.fillText('Boost high enough to enter ☁️ Cloud World!', W/2, H/2 + 36);
-
-  const pulse = 0.65 + Math.sin(frame * 0.055) * 0.35;
-  ctx.globalAlpha = pulse;
-  ctx.fillStyle = '#4ade80';
-  ctx.font = 'bold 21px Segoe UI';
-  ctx.fillText('Click here or press Space to Start', W/2, H/2 + 78);
-  ctx.globalAlpha = 1;
+  ctx.fillStyle='rgba(0,0,0,0.58)'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,0.08)';
+  ctx.beginPath(); ctx.roundRect(W/2-220,H/2-130,440,260,18); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.roundRect(W/2-220,H/2-130,440,260,18); ctx.stroke();
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='#ffd700'; ctx.font='bold 54px Segoe UI';
+  ctx.fillText('🚗 CarJumper',W/2,H/2-62);
+  ctx.fillStyle='rgba(255,255,255,0.75)'; ctx.font='17px Segoe UI';
+  ctx.fillText('Jump the river · Collect coins · Upgrade your car!',W/2,H/2-4);
+  ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.font='13px Segoe UI';
+  ctx.fillText('Coins fall from the sky · Boost high enough to reach ☁️ Cloud World',W/2,H/2+24);
+  const pulse=0.65+Math.sin(frame*0.055)*0.35;
+  ctx.globalAlpha=pulse; ctx.fillStyle='#4ade80'; ctx.font='bold 21px Segoe UI';
+  ctx.fillText('Click here or press Space to Start',W/2,H/2+82); ctx.globalAlpha=1;
 }
 
 function drawGameOver() {
-  ctx.fillStyle = 'rgba(0,0,0,0.72)';
-  ctx.fillRect(0, 0, W, H);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-
-  ctx.fillStyle = '#f87171';
-  ctx.font = 'bold 50px Segoe UI';
-  ctx.fillText('💦 SPLASH! 💦', W/2, H/2 - 60);
-
-  if (lives > 0) {
-    ctx.fillStyle = '#fff';
-    ctx.font = '22px Segoe UI';
-    ctx.fillText(`${lives} ${lives === 1 ? 'life' : 'lives'} remaining — retrying level ${level}…`, W/2, H/2 - 4);
-    ctx.font = '30px Segoe UI';
-    ctx.fillText('❤️'.repeat(lives) + '🖤'.repeat(3 - lives), W/2, H/2 + 46);
+  ctx.fillStyle='rgba(0,0,0,0.72)'; ctx.fillRect(0,0,W,H);
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  if (state==='cloudworld'||cloudPlatforms.length>0) {
+    ctx.fillStyle='#93c5fd'; ctx.font='bold 44px Segoe UI';
+    ctx.fillText('☁️ FELL THROUGH! ☁️',W/2,H/2-60);
   } else {
-    ctx.fillStyle = '#fff';
-    ctx.font = '22px Segoe UI';
-    ctx.fillText(`You reached Level ${Math.max(1, level)}`, W/2, H/2 - 4);
-    ctx.fillStyle = '#ffd700';
-    ctx.font = 'bold 20px Segoe UI';
-    ctx.fillText(`Total coins: ${totalCoins}`, W/2, H/2 + 38);
-    const fadeAlpha = 0.4 + Math.sin(frame * 0.07) * 0.35;
-    ctx.globalAlpha = fadeAlpha;
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '15px Segoe UI';
-    ctx.fillText('Click to play again', W/2, H/2 + 84);
-    ctx.globalAlpha = 1;
+    ctx.fillStyle='#f87171'; ctx.font='bold 50px Segoe UI';
+    ctx.fillText('💦 SPLASH! 💦',W/2,H/2-60);
+  }
+  if (lives>0) {
+    ctx.fillStyle='#fff'; ctx.font='22px Segoe UI';
+    ctx.fillText(`${lives} ${lives===1?'life':'lives'} remaining — retrying level ${level}…`,W/2,H/2-4);
+    ctx.font='30px Segoe UI';
+    ctx.fillText('❤️'.repeat(lives)+'🖤'.repeat(3-lives),W/2,H/2+46);
+  } else {
+    ctx.fillStyle='#fff'; ctx.font='22px Segoe UI';
+    ctx.fillText(`You reached Level ${Math.max(1,level)}`,W/2,H/2-4);
+    ctx.fillStyle='#ffd700'; ctx.font='bold 20px Segoe UI';
+    ctx.fillText(`Total coins: ${totalCoins}`,W/2,H/2+38);
+    const fa=0.4+Math.sin(frame*0.07)*0.35;
+    ctx.globalAlpha=fa; ctx.fillStyle='#94a3b8'; ctx.font='15px Segoe UI';
+    ctx.fillText('Click to play again',W/2,H/2+84); ctx.globalAlpha=1;
   }
 }
 
 function drawLanded() {
-  ctx.fillStyle = 'rgba(74,222,128,0.15)';
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#4ade80';
-  ctx.font = 'bold 34px Segoe UI';
-  ctx.fillText(`✅ Level ${level - 1} Complete!`, W/2, H/2 - 30);
-
-  ctx.fillStyle = '#ffd700';
-  ctx.font = '20px Segoe UI';
-  ctx.fillText(`+${sessionCoins} coins${flipUsed ? ' (includes flip bonus!)' : ''}`, W/2, H/2 + 14);
-
-  // Stadium transition name
-  const t = getTheme();
+  const fromCloud = cloudPlatforms.some(cp=>cp.landed);
+  ctx.fillStyle=fromCloud?'rgba(100,220,255,0.15)':'rgba(74,222,128,0.15)';
+  ctx.fillRect(0,0,W,H);
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle=fromCloud?'#7dd3fc':'#4ade80';
+  ctx.font='bold 34px Segoe UI';
+  ctx.fillText(fromCloud?`☁️ Cloud Landing! Level ${level-1} Complete!`:`✅ Level ${level-1} Complete!`,W/2,H/2-30);
+  ctx.fillStyle='#ffd700'; ctx.font='20px Segoe UI';
+  ctx.fillText(`+${sessionCoins} coins${flipUsed?' (includes flip bonus!)':''}`,W/2,H/2+14);
+  const t=getTheme();
   if (t.name) {
-    const pulse = 0.75 + Math.sin(frame * 0.12) * 0.25;
-    ctx.globalAlpha = pulse;
-    ctx.fillStyle = t.nameColor;
-    ctx.font = 'bold 22px Segoe UI';
-    ctx.fillText(`Next: ${t.name}`, W/2, H/2 + 56);
-    ctx.globalAlpha = 1;
+    const pulse=0.75+Math.sin(frame*0.12)*0.25;
+    ctx.globalAlpha=pulse; ctx.fillStyle=t.nameColor; ctx.font='bold 22px Segoe UI';
+    ctx.fillText(`Next: ${t.name}`,W/2,H/2+56); ctx.globalAlpha=1;
   }
-
-  if (level === 21) {
-    ctx.fillStyle = '#f97316';
-    ctx.font = 'bold 17px Segoe UI';
-    ctx.fillText('⚠️ Double River challenge starts next level!', W/2, H/2 + 86);
+  if (level===21) {
+    ctx.fillStyle='#f97316'; ctx.font='bold 17px Segoe UI';
+    ctx.fillText('⚠️ Double River challenge starts next level!',W/2,H/2+86);
   }
 }
 
@@ -1472,42 +1209,27 @@ function drawLanded() {
 // ─────────────────────────────────────────────
 function loop() {
   update();
-
-  ctx.clearRect(0, 0, W, H);
+  ctx.clearRect(0,0,W,H);
   drawBG();
   drawGround();
-
-  if (state !== 'menu') {
+  if (state!=='menu') {
     drawCoins();
-    // Draw cloud world BEHIND the car
-    if (state === 'airborne') drawCloudWorld();
     drawCar();
     drawParticles();
   }
-
   drawHUD();
-
-  if (state === 'menu')     drawMenu();
-  if (state === 'gameover') drawGameOver();
-  if (state === 'landed')   drawLanded();
+  if (state==='menu')     drawMenu();
+  if (state==='gameover') drawGameOver();
+  if (state==='landed')   drawLanded();
 }
 
-// Start loop — restart if tab regains visibility
-let _loopRunning = false;
+let _loopRunning=false;
 function startLoop() {
-  if (_loopRunning) return;
-  _loopRunning = true;
-  function _tick() {
-    loop();
-    if (!document.hidden) {
-      requestAnimationFrame(_tick);
-    } else {
-      _loopRunning = false;
-    }
-  }
+  if(_loopRunning) return; _loopRunning=true;
+  function _tick() { loop(); if(!document.hidden) requestAnimationFrame(_tick); else _loopRunning=false; }
   requestAnimationFrame(_tick);
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) startLoop(); });
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) startLoop(); });
 startLoop();
 </script>
 </body>
