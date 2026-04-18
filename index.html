@@ -178,16 +178,48 @@ function rightSurfaceY(cx) {
 }
 
 // ─────────────────────────────────────────────
-//  UPGRADES
+//  UPGRADES  (stats only — names/emojis come from TIER_DEFS)
 // ─────────────────────────────────────────────
 const UPG = {
-  engine:     {lv:0,max:3,costs:[6,18,38], name:'Engine',     emoji:'🔧',desc:'More launch speed'},
-  springs:    {lv:0,max:3,costs:[6,18,38], name:'Springs',    emoji:'🌀',desc:'Jump higher'},
-  flipCharge: {lv:0,max:3,costs:[8,22,45], name:'Flip Charge',emoji:'⚡',desc:'Faster flip cool'},
-  turbo:      {lv:0,max:3,costs:[8,22,45], name:'Turbo',      emoji:'🚀',desc:'Boost gives more'},
-  grip:       {lv:0,max:3,costs:[10,28,55],name:'Grip',       emoji:'🏎️',desc:'Cleaner landings'},
-  magnet:     {lv:0,max:3,costs:[10,28,55],name:'Coin Magnet',emoji:'💰',desc:'More falling coins'}
+  engine:     {lv:0,max:3,costs:[6,18,38]},
+  springs:    {lv:0,max:3,costs:[6,18,38]},
+  flipCharge: {lv:0,max:3,costs:[8,22,45]},
+  turbo:      {lv:0,max:3,costs:[8,22,45]},
+  grip:       {lv:0,max:3,costs:[10,28,55]},
+  magnet:     {lv:0,max:3,costs:[10,28,55]}
 };
+
+// Upgrade tier definitions — swaps at level 30, 60, 90 …
+const TIER_DEFS = [
+  { label:'Tier 1',          color:'#60a5fa',
+    engine:     {name:'Engine',        emoji:'🔧',desc:'More launch speed'},
+    springs:    {name:'Springs',       emoji:'🌀',desc:'Jump higher'},
+    flipCharge: {name:'Flip Charge',   emoji:'⚡',desc:'Faster flip cool'},
+    turbo:      {name:'Turbo',         emoji:'🚀',desc:'Boost gives more'},
+    grip:       {name:'Grip',          emoji:'🏎️',desc:'Cleaner landings'},
+    magnet:     {name:'Coin Magnet',   emoji:'💰',desc:'More falling coins'} },
+  { label:'⚡ Advanced',      color:'#f59e0b',
+    engine:     {name:'Supercharger',  emoji:'⚙️', desc:'Massive speed boost'},
+    springs:    {name:'Rocket Springs',emoji:'🛸', desc:'Extreme jump height'},
+    flipCharge: {name:'Hyper Flip',    emoji:'💫', desc:'Much faster flip'},
+    turbo:      {name:'Nitro',         emoji:'🔥', desc:'Insane boost power'},
+    grip:       {name:'Mag Wheels',    emoji:'🧲', desc:'Perfect landings'},
+    magnet:     {name:'Gold Magnet',   emoji:'🏆', desc:'Coins everywhere'} },
+  { label:'🌌 Legendary',     color:'#c084fc',
+    engine:     {name:'Warp Drive',    emoji:'🌌', desc:'Teleport speed'},
+    springs:    {name:'Moon Springs',  emoji:'🌙', desc:'Gravity-defying'},
+    flipCharge: {name:'Chaos Flip',    emoji:'⭐', desc:'Instant flip'},
+    turbo:      {name:'Plasma Boost',  emoji:'💥', desc:'Nuclear power'},
+    grip:       {name:'Quantum Grip',  emoji:'🔮', desc:'Land anywhere'},
+    magnet:     {name:'Black Hole',    emoji:'🕳️', desc:'Pulls all coins'} }
+];
+
+let upgradeTier     = 0;    // 0 = Tier 1, 1 = Tier 2 (lv 30+), 2 = Tier 3 (lv 60+)
+let tierJustEvolved = false; // flag so shop can show banner
+let spikeRiseMsg    = 0;    // frames to show "SPIKES GREW!" flash
+
+function getTierDef(key){ return TIER_DEFS[upgradeTier][key]; }
+function tierMult()     { return 1 + upgradeTier * 0.6; }  // scales all upgrade effects
 
 // ─────────────────────────────────────────────
 //  CAR
@@ -221,7 +253,7 @@ function updateFallingCoins() {
   });
 }
 function collectCoins() {
-  const cr=22+UPG.magnet.lv*12;
+  const cr=22+UPG.magnet.lv*(12*tierMult());
   airCoins.forEach(c=>{
     if(c.collected) return;
     const dx=(car.x+car.w/2)-c.x, dy=(car.y+car.h/2)-c.y;
@@ -277,7 +309,7 @@ document.getElementById('flipBtn').addEventListener('pointerdown',e=>{e.stopProp
 function onJump(){ if(state==='menu'){startGame();return;} if(state==='driving') launch(); }
 function onBoost(){
   if(state!=='driving'||boosted) return;
-  boosted=true; car.vx+=2.2+UPG.turbo.lv*0.9;
+  boosted=true; car.vx+=2.2+UPG.turbo.lv*(0.9*tierMult());
   document.getElementById('boostBtn').disabled=true;
   spawnParticles(car.x,car.y+car.h/2,'#ff6b35',8);
 }
@@ -295,14 +327,16 @@ function startGame(){
   level=1; lives=3; totalCoins=0;
   riverWidth=RIVER_BASE; river2Width=0;
   inCloudWorld=false; cloudLevel=0; cloudGapW=80;
+  upgradeTier=0; tierJustEvolved=false; spikeRiseMsg=0;
   Object.values(UPG).forEach(u=>u.lv=0);
   generateBgSprites(); resetCar(); goState('driving');
 }
 
 function launch(){
   if(state!=='driving') return;
-  const springMult=1+UPG.springs.lv*0.28;
-  const boostBonus=boosted?(1.6+UPG.turbo.lv*0.5):0;
+  const tm=tierMult();
+  const springMult=1+UPG.springs.lv*(0.28*tm);
+  const boostBonus=boosted?(1.6+UPG.turbo.lv*(0.5*tm)):0;
   car.vx=Math.max(car.vx,1)*1.35;
   car.vy=-(11*springMult+boostBonus);
   car.angle=-0.22;
@@ -337,12 +371,23 @@ function onSuccess(){
     // Normal world success
     lives=3;
     if(flipUsed) sessionCoins+=3;
-    car.vx*=(0.28-UPG.grip.lv*0.04);
+    car.vx*=(0.28-UPG.grip.lv*(0.04*tierMult()));
     car.vy=0; car.spinning=false; car.angle=0;
     totalCoins+=sessionCoins;
     level++;
     if(level<=20){ riverWidth=Math.min(RIVER_BASE+(level-1)*RIVER_GROW,RIVER_MAX); river2Width=0; }
     else { const pl=level-20; riverWidth=Math.min(75+(pl-1)*10,150); river2Width=Math.min(55+(pl-1)*8,120); }
+
+    // Check upgrade tier evolution (every 30 levels)
+    const newTier=Math.min(Math.floor((level-1)/30),2);
+    if(newTier>upgradeTier){
+      upgradeTier=newTier; tierJustEvolved=true;
+      Object.values(UPG).forEach(u=>u.lv=0);
+    } else { tierJustEvolved=false; }
+
+    // Spike rise announcement (every 10 levels)
+    if(level%10===0) spikeRiseMsg=210;
+
     generateBgSprites();
     spawnParticles(car.x+car.w/2,car.y,'#4ade80',14);
     goState('landed');
@@ -382,19 +427,44 @@ function enterCloudWorld(){
 function openShop(){
   goState('shop');
   const isCloud=inCloudWorld;
-  document.getElementById('shopTitle').textContent = isCloud ? '☁️ Cloud Shop' : '🏪 Upgrade Shop';
-  document.getElementById('shopMeta').textContent  = isCloud
-    ? `Cloud Level ${cloudLevel} complete!  Gap width: ${cloudGapW}px`
+  const td=TIER_DEFS[upgradeTier];
+
+  // Title: show tier label and evolution banner if just evolved
+  let titleHTML = isCloud ? '☁️ Cloud Shop' : `🏪 Upgrade Shop`;
+  if(tierJustEvolved)
+    titleHTML = `🌟 UPGRADES EVOLVED! → ${td.label}`;
+  document.getElementById('shopTitle').textContent = titleHTML;
+
+  // Tier badge color
+  document.getElementById('shopTitle').style.color = tierJustEvolved ? td.color : '#ffd700';
+
+  let metaText = isCloud
+    ? `Cloud Level ${cloudLevel} complete!  Gap: ${cloudGapW}px`
     : `Level ${level-1} complete — Level ${level} next`;
+  if(!isCloud) metaText += `  |  ${td.label}  (next evolution: lv ${(upgradeTier+1)*30})`;
+  document.getElementById('shopMeta').textContent = metaText;
+
   document.getElementById('shopCoins').textContent=`💰 ${totalCoins} coins  (+${sessionCoins} this run)`;
+
   const grid=document.getElementById('shopGrid'); grid.innerHTML='';
   Object.entries(UPG).forEach(([key,u])=>{
+    const def=getTierDef(key);
     const maxed=u.lv>=u.max,cost=maxed?null:u.costs[u.lv],canAfford=!maxed&&totalCoins>=cost;
     const div=document.createElement('div');
     div.className='shopItem'+(maxed?' maxed':!canAfford?' cantAfford':'');
+    if(tierJustEvolved) div.style.borderColor=td.color;
     const dots=Array.from({length:u.max},(_,i)=>`<div class="sDot ${i<u.lv?'on':''}"></div>`).join('');
-    div.innerHTML=`<div class="sEmoji">${u.emoji}</div><div class="sName">${u.name}</div><div class="sDesc">${u.desc}</div><div class="sBar">${dots}</div><div class="sCost">${maxed?'✅ MAX':canAfford?`💰 ${cost}`:`🔒 ${cost}`}</div>`;
-    if(canAfford) div.addEventListener('click',()=>{totalCoins-=cost;u.lv++;renderShopCoins();grid.querySelectorAll('.shopItem').forEach((el,i)=>{const [k,u2]=Object.entries(UPG)[i];const m2=u2.lv>=u2.max,c2=m2?null:u2.costs[u2.lv],ca2=!m2&&totalCoins>=c2;el.className='shopItem'+(m2?' maxed':!ca2?' cantAfford':'');el.querySelector('.sCost').textContent=m2?'✅ MAX':ca2?`💰 ${c2}`:`🔒 ${c2}`;el.querySelectorAll('.sDot').forEach((d,j)=>{d.className='sDot'+(j<u2.lv?' on':'');});});});
+    div.innerHTML=`<div class="sEmoji">${def.emoji}</div><div class="sName">${def.name}</div><div class="sDesc">${def.desc}</div><div class="sBar">${dots}</div><div class="sCost">${maxed?'✅ MAX':canAfford?`💰 ${cost}`:`🔒 ${cost}`}</div>`;
+    if(canAfford) div.addEventListener('click',()=>{
+      totalCoins-=cost; u.lv++; renderShopCoins();
+      grid.querySelectorAll('.shopItem').forEach((el,i)=>{
+        const [k,u2]=Object.entries(UPG)[i];
+        const m2=u2.lv>=u2.max,c2=m2?null:u2.costs[u2.lv],ca2=!m2&&totalCoins>=c2;
+        el.className='shopItem'+(m2?' maxed':!ca2?' cantAfford':'');
+        el.querySelector('.sCost').textContent=m2?'✅ MAX':ca2?`💰 ${c2}`:`🔒 ${c2}`;
+        el.querySelectorAll('.sDot').forEach((d,j)=>{d.className='sDot'+(j<u2.lv?' on':'');});
+      });
+    });
     grid.appendChild(div);
   });
   document.getElementById('shopOverlay').style.display='flex';
@@ -428,12 +498,14 @@ function update(){
   frame++; waveOff+=0.055;
   updateParticles(); updateBgSprites();
   if(leftLandMsg>0) leftLandMsg--;
+  if(spikeRiseMsg>0) spikeRiseMsg--;
 
   // Coins fall every frame regardless of state
   if(state==='driving'||state==='airborne'||state==='landed') updateFallingCoins();
 
   if(state==='driving'){
-    const maxSpd=(3+UPG.engine.lv*0.5)*(boosted?(1.35+UPG.turbo.lv*0.22):1);
+    const tm=tierMult();
+    const maxSpd=(3+UPG.engine.lv*(0.5*tm))*(boosted?(1.35+UPG.turbo.lv*0.22):1);
     if(keys['arrowright']||keys['d']) car.vx=Math.min(car.vx+0.06,maxSpd);
     else if(keys['arrowleft']||keys['a']) car.vx=Math.max(car.vx-0.15,0);
     else car.vx*=0.90;
@@ -889,6 +961,27 @@ function drawHUD(){
     const a=Math.min(1,leftLandMsg/20);
     ctx.globalAlpha=a;ctx.fillStyle='#fb923c';ctx.font='bold 22px Segoe UI';ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText('Too short! Try again 🚗',W/2,H/2-40);ctx.globalAlpha=1;
+  }
+
+  // ⚠️ Spike rise flash (every 10 levels)
+  if(spikeRiseMsg>0){
+    const a=Math.min(1,spikeRiseMsg/40)*Math.min(1,(spikeRiseMsg%60)/10+0.3);
+    ctx.globalAlpha=a;
+    ctx.fillStyle='rgba(0,0,0,0.5)';
+    ctx.beginPath();ctx.roundRect(W/2-175,H/2-58,350,48,10);ctx.fill();
+    ctx.fillStyle='#ff4422';ctx.font='bold 24px Segoe UI';ctx.textAlign='center';ctx.textBaseline='middle';
+    const sH=Math.min(12+Math.floor(level/10)*16,88);
+    ctx.fillText(`⚠️  SPIKES GREW!  Now ${sH}px tall`,W/2,H/2-34);
+    ctx.globalAlpha=1;
+  }
+
+  // Tier badge (top-centre, small)
+  if(upgradeTier>0&&state!=='gameover'&&state!=='menu'){
+    const td=TIER_DEFS[upgradeTier];
+    ctx.fillStyle='rgba(0,0,0,0.5)';
+    ctx.beginPath();ctx.roundRect(W/2-70,H-44,140,30,8);ctx.fill();
+    ctx.fillStyle=td.color;ctx.font='bold 13px Segoe UI';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(td.label,W/2,H-29);
   }
 }
 
