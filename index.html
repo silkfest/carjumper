@@ -138,9 +138,11 @@ let particles=[], airCoins=[], bgSprites=[];
 let leftLandMsg=0;
 
 // ── Cloud World ──
-let inCloudWorld  = false;  // are we in the cloud dimension?
-let cloudLevel    = 0;      // how many cloud gaps completed this visit
-let cloudGapW     = 80;     // current cloud gap width (grows each cloud level)
+let inCloudWorld          = false;  // are we in the cloud dimension?
+let cloudLevel            = 0;      // how many cloud gaps completed total
+let cloudGapW             = 80;     // current cloud gap width (grows each cloud level)
+let cloudLevelsThisVisit  = 0;      // cloud levels cleared in current visit (exit after 5)
+let cloudJustLeft         = false;  // true on the landed screen when we just exited cloud world
 
 // ─────────────────────────────────────────────
 //  THEME (ground world)
@@ -326,7 +328,7 @@ function onFlip(){
 function startGame(){
   level=1; lives=3; totalCoins=0;
   riverWidth=RIVER_BASE; river2Width=0;
-  inCloudWorld=false; cloudLevel=0; cloudGapW=80;
+  inCloudWorld=false; cloudLevel=0; cloudGapW=80; cloudLevelsThisVisit=0; cloudJustLeft=false;
   upgradeTier=0; tierJustEvolved=false; spikeRiseMsg=0;
   Object.values(UPG).forEach(u=>u.lv=0);
   generateBgSprites(); resetCar(); goState('driving');
@@ -357,6 +359,7 @@ function onSuccess(){
   if (inCloudWorld) {
     // Cloud world success — gap gets wider
     cloudLevel++;
+    cloudLevelsThisVisit++;
     cloudGapW=Math.min(80+cloudLevel*15, 380);
     const bonus=8+cloudLevel*3;
     sessionCoins+=bonus;
@@ -365,6 +368,14 @@ function onSuccess(){
     totalCoins+=sessionCoins;
     spawnParticles(car.x+car.w/2,car.y,'#7dd3fc',20);
     spawnParticles(car.x+car.w/2,car.y,'#ffffff',10);
+    // After 5 cloud levels in this visit, return to earth
+    if(cloudLevelsThisVisit>=5){
+      inCloudWorld=false;
+      cloudLevelsThisVisit=0;
+      cloudJustLeft=true;
+    } else {
+      cloudJustLeft=false;
+    }
     goState('landed');
     setTimeout(()=>openShop(),900);
   } else {
@@ -388,6 +399,7 @@ function onSuccess(){
     // Spike rise announcement (every 10 levels)
     if(level%10===0) spikeRiseMsg=210;
 
+    cloudJustLeft=false;
     generateBgSprites();
     spawnParticles(car.x+car.w/2,car.y,'#4ade80',14);
     goState('landed');
@@ -399,7 +411,7 @@ function onSuccess(){
 function onDrown(){
   totalCoins+=sessionCoins; lives--;
   spawnParticles(car.x+car.w/2,GROUND_Y,inCloudWorld?'#7dd3fc':'#1e90ff',20);
-  inCloudWorld=false;  // fall through clouds → back to ground world
+  inCloudWorld=false; cloudJustLeft=false;  // fall through clouds → back to ground world
   goState('gameover');
   if(lives>0){ setTimeout(()=>{resetCar();goState('driving');},2200); }
   else { setTimeout(()=>goState('menu'),3200); }
@@ -415,6 +427,8 @@ function onLeftLand(){
 // ── Enter cloud world ──
 function enterCloudWorld(){
   inCloudWorld=true;
+  cloudLevelsThisVisit=0;
+  cloudJustLeft=false;
   cloudGapW=Math.min(80+cloudLevel*15, 380);
   // Immediately reset — no delay, or the falling car lands in the gap and drowns
   resetCar();
@@ -426,11 +440,11 @@ function enterCloudWorld(){
 // ─────────────────────────────────────────────
 function openShop(){
   goState('shop');
-  const isCloud=inCloudWorld;
+  const isCloud=inCloudWorld||cloudJustLeft;
   const td=TIER_DEFS[upgradeTier];
 
   // Title: show tier label and evolution banner if just evolved
-  let titleHTML = isCloud ? '☁️ Cloud Shop' : `🏪 Upgrade Shop`;
+  let titleHTML = isCloud ? (cloudJustLeft?'🌍 Back on Earth!':'☁️ Cloud Shop') : `🏪 Upgrade Shop`;
   if(tierJustEvolved)
     titleHTML = `🌟 UPGRADES EVOLVED! → ${td.label}`;
   document.getElementById('shopTitle').textContent = titleHTML;
@@ -439,7 +453,7 @@ function openShop(){
   document.getElementById('shopTitle').style.color = tierJustEvolved ? td.color : '#ffd700';
 
   let metaText = isCloud
-    ? `Cloud Level ${cloudLevel} complete!  Gap: ${cloudGapW}px`
+    ? (cloudJustLeft?`Completed 5 cloud levels! Ground level: ${level}`:`Cloud Level ${cloudLevel} complete!  Gap: ${cloudGapW}px`)
     : `Level ${level-1} complete — Level ${level} next`;
   if(!isCloud) metaText += `  |  ${td.label}  (next evolution: lv ${(upgradeTier+1)*30})`;
   document.getElementById('shopMeta').textContent = metaText;
@@ -1019,17 +1033,27 @@ function drawGameOver(){
 }
 
 function drawLanded(){
-  const cloud=inCloudWorld;
+  const cloud=inCloudWorld||cloudJustLeft;
   ctx.fillStyle=cloud?'rgba(100,210,255,0.15)':'rgba(74,222,128,0.15)';ctx.fillRect(0,0,W,H);
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillStyle=cloud?'#7dd3fc':'#4ade80';ctx.font='bold 32px Segoe UI';
-  ctx.fillText(cloud?`☁️ Cloud Level ${cloudLevel} Clear!  Next gap: ${cloudGapW}px`:`✅ Level ${level-1} Complete!`,W/2,H/2-30);
+  if(cloudJustLeft){
+    ctx.fillText(`☁️ Cloud Level ${cloudLevel} Clear!`,W/2,H/2-56);
+    ctx.fillStyle='#fff';ctx.font='bold 28px Segoe UI';
+    ctx.fillText('🌍 Returning to Earth!',W/2,H/2-18);
+    ctx.fillStyle='#94a3b8';ctx.font='16px Segoe UI';
+    ctx.fillText('You completed all 5 cloud levels — back to the ground!',W/2,H/2+20);
+  } else if(inCloudWorld){
+    ctx.fillText(`☁️ Cloud Level ${cloudLevel} Clear!  Next gap: ${cloudGapW}px`,W/2,H/2-30);
+  } else {
+    ctx.fillText(`✅ Level ${level-1} Complete!`,W/2,H/2-30);
+  }
   ctx.fillStyle='#ffd700';ctx.font='20px Segoe UI';
-  ctx.fillText(`+${sessionCoins} coins${flipUsed?' (includes flip bonus!)':''}`,W/2,H/2+14);
+  ctx.fillText(`+${sessionCoins} coins${flipUsed?' (includes flip bonus!)':''}`,W/2,H/2+54);
   if(!cloud){
     const t=getTheme();
-    if(t.name){const p=0.75+Math.sin(frame*0.12)*0.25;ctx.globalAlpha=p;ctx.fillStyle=t.nameColor;ctx.font='bold 22px Segoe UI';ctx.fillText(`Next: ${t.name}`,W/2,H/2+56);ctx.globalAlpha=1;}
-    if(level===21){ctx.fillStyle='#f97316';ctx.font='bold 17px Segoe UI';ctx.fillText('⚠️ Double River challenge starts next level!',W/2,H/2+86);}
+    if(t.name){const p=0.75+Math.sin(frame*0.12)*0.25;ctx.globalAlpha=p;ctx.fillStyle=t.nameColor;ctx.font='bold 22px Segoe UI';ctx.fillText(`Next: ${t.name}`,W/2,H/2+90);ctx.globalAlpha=1;}
+    if(level===21){ctx.fillStyle='#f97316';ctx.font='bold 17px Segoe UI';ctx.fillText('⚠️ Double River challenge starts next level!',W/2,H/2+120);}
   }
 }
 
