@@ -429,6 +429,9 @@ function update(){
   updateParticles(); updateBgSprites();
   if(leftLandMsg>0) leftLandMsg--;
 
+  // Coins fall every frame regardless of state
+  if(state==='driving'||state==='airborne'||state==='landed') updateFallingCoins();
+
   if(state==='driving'){
     const maxSpd=(3+UPG.engine.lv*0.5)*(boosted?(1.35+UPG.turbo.lv*0.22):1);
     if(keys['arrowright']||keys['d']) car.vx=Math.min(car.vx+0.06,maxSpd);
@@ -451,7 +454,7 @@ function update(){
       return;
     }
 
-    updateFallingCoins(); collectCoins();
+    collectCoins();
 
     if(car.spinning){car.angle+=car.spinVel;car.spinVel=Math.max(0.05,car.spinVel*0.985);}
     else car.angle=Math.atan2(car.vy,car.vx)*0.4;
